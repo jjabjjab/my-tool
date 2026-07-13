@@ -63,7 +63,7 @@
       padding: 40px; 
       color: var(--novel-text);
       font-size: 17px;
-      line-height: 1.85; /* 수정사항: 캡처본 서체 비율에 맞춰 너무 답답하지 않고 쾌적하게 조정 */
+      line-height: 1.85; 
       letter-spacing: -0.02em;
       text-align: left; 
     }
@@ -72,11 +72,10 @@
     .novel-capture-area p, .novel-capture-area blockquote {
       word-break: keep-all;
       overflow-wrap: break-word;
-      margin-bottom: 1.1em; /* 수정사항: 엔터 단락 간격을 쾌적한 비례감으로 압축 */
+      margin-bottom: 0; /* 수정사항: 문단 뒤 여백 추가 기능을 완전히 제거(0)하여 일반 줄바꿈과 여백을 통일 */
     }
 
     /* 마크다운 규칙 스타일 정의 */
-    /* 수정사항: 기존의 display: block과 과도한 마진, 폰트 크기 강제 확대를 제거하여 원문 그대로 인라인 유지 */
     .novel-capture-area strong { 
       color: var(--novel-bold); 
       font-weight: 700; 
@@ -99,27 +98,8 @@
       opacity: 0.75; 
     }
     
-    /* 빈 줄 유지 */
-    .novel-capture-area .empty-line { height: 1em; margin-bottom: 0; }
-
-    /* 드래그 플로팅 버튼 */
-    #floatingHighlightBtn {
-      position: absolute;
-      display: none;
-      background: #28a745;
-      color: white;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      z-index: 9999;
-    }
-    #floatingHighlightBtn:hover {
-      background: #218838;
-    }
+    /* 빈 줄 유지 (엔터를 두 번 쳤을 때의 공백 크기) */
+    .novel-capture-area .empty-line { height: 1.85em; margin-bottom: 0; }
   </style>
 </head>
 <body>
@@ -168,12 +148,11 @@
     <div class="novel-capture-area" id="novelView" data-theme="dark"></div>
   </div>
 
-  <button id="floatingHighlightBtn">✍️ 하이라이트 추가</button>
+  <button id="floatingHighlightBtn" style="position: absolute; display: none; background: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 9999;">✍️ 하이라이트 추가</button>
 
   <script>
     window.onload = function() {
       document.getElementById('replaceRules').value = "이름->■■";
-      // 샘플 데이터를 요청하신 실전 원문 예시로 전면 교체
       document.getElementById('inputText').value = `*손가락 끝에 힘이 실렸다가 다시 풀렸다. 재연의 손 위에 올려진 이휘의 엄지가 그녀의 손등을 한 번 느리게 쓸었고, 그 한 번의 접촉이 재연의 척추를 타고 올라가는 전류처럼 느껴졌을 것이다. 이휘는 고개를 아주 살짝 옆으로 기울이며 재연의 눈을 놓지 않은 채 입을 열었다. 그 각도에서 보면 그의 직선형 코와 턱선이 만들어내는 윤곽이 창밖의 역광을 받아 선명한 그림자를 드리우고 있었고, 흑발 사이로 스며든 햇살이 잔잔한 윤기를 만들어내고 있었다.*\n\n**이휘｜** "진심이냐고 물었지. 그래, 진심이야. 네가 내 곁에서 다른 남자한테 8년을 쓰는 동안에도 진심이었고, 그놈이 널 버리기 전에 내가 먼저 손을 뻗었어야 했다는 후회가 진심이고, 지금 이 순간 네 앞에 앉아서 이 얘기를 하는 것도 전부 진심이야."\n\n*가볍게 던지는 말투가 아니었다. 이휘의 평소 화법에서 보기 드문, 문장 하나하나에 무게를 실어 또박또박 내려놓는 방식이었다. 마치 오래 묵혀두었던 서랍 속 물건을 하나씩 꺼내 테이블 위에 정렬하듯, 자신의 감정을 사실의 형태로 나열하고 있었다. 재연의 눈이 점점 커지며 찻잔을 감싼 손에서 힘이 빠져나가는 것이 느껴졌고, 이휘는 그 반응을 놓치지 않은 채 입꼬리를 아주 미세하게 끌어올렸다. 그러나 그 미소는 아까 브리핑실에서 보여준 여유만만한 것과는 결이 달랐다. 조금 더 부드럽고, 조금 더 취약한 무언가가 그 안에 스며 있었다.*`;
       renderNovel();
     };
@@ -237,6 +216,7 @@
           processedLine = processedLine.replace(/^&gt;\s?/, '');
         }
 
+        processedLine = processedLine.replace(/\*\*(.*?)\*\"/g, '<strong>$1</strong>');
         processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         processedLine = processedLine.replace(/\*(.*?)\*/g, '<span class="low-opacity">$1</span>');
         processedLine = processedLine.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
@@ -319,7 +299,7 @@
       window.getSelection().removeAllRanges();
     });
 
-    // 하이라이트 클릭 삭제 및 전체 삭제 로직
+    // 하이라이트 클릭 삭제 로직
     novelView.addEventListener('click', function(e) {
       if (e.target.classList.contains('highlight')) {
         if (window.getSelection().toString().trim().length > 0) return;
