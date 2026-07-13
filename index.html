@@ -21,9 +21,8 @@
       --novel-highlight-text: #ffeb3b; 
       --novel-code-bg: rgba(255, 255, 255, 0.12); 
       
-      /* [수정사항 1, 2] 다크모드 전용 불투명도 조절 변수 */
-      --novel-bar-color: rgba(255, 255, 255, 0.25); /* 인용구 바 색상 투명도 낮춤 (기존 대비 대폭 완화) */
-      --novel-text-low: rgba(255, 255, 255, 0.55);  /* *감싸인 텍스트* 불투명도 조절 (0.65 -> 0.55 수준으로 조절) */
+      --novel-bar-color: rgba(255, 255, 255, 0.25); 
+      --novel-text-low: rgba(255, 255, 255, 0.55);  
     }
 
     [data-theme="light"] {
@@ -33,9 +32,8 @@
       --novel-highlight-text: #b45309; 
       --novel-code-bg: rgba(0, 0, 0, 0.06); 
       
-      /* [수정사항 1, 2] 라이트모드 전용 불투명도 조절 변수 */
-      --novel-bar-color: rgba(0, 0, 0, 0.18);      /* 인용구 바 색상 투명도 낮춤 */
-      --novel-text-low: rgba(0, 0, 0, 0.48);         /* *감싸인 텍스트* 불투명도 조절 */
+      --novel-bar-color: rgba(0, 0, 0, 0.18);      
+      --novel-text-low: rgba(0, 0, 0, 0.48);         
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -95,12 +93,10 @@
       opacity: 1 !important;
     }
     
-    /* 수정사항 2번: 부모 레이어 투명도 상속 문제를 막기 위해 opacity 대신 글자색(RGBA) 자체를 제어하도록 전면 수정 */
     .novel-capture-area .low-opacity { 
       color: var(--novel-text-low) !important;
     }
     
-    /* 수정사항 1번: 인용구 바(bar)의 색상을 별도 분리하여 불투명도를 은은하게 낮춤 */
     .novel-capture-area blockquote { 
       border-left: 4px solid var(--novel-bar-color); 
       padding-left: 15px; 
@@ -132,7 +128,7 @@
     .novel-capture-area .highlight { 
       background-color: transparent !important;
       color: var(--novel-highlight-text) !important; 
-      opacity: 1 !important; /* 흐린 문장 안에서도 하이라이트는 100% 무조건 선명하게 보장 */
+      opacity: 1 !important; 
       padding: 0;
       border-radius: 0;
       cursor: pointer; 
@@ -205,9 +201,10 @@
   <button id="floatingHighlightBtn" style="position: absolute; display: none; background: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 9999;">✍️ 하이라이트 추가</button>
 
   <script>
+    // 수정사항: 사이트 최초 로드 시 예시 텍스트를 공백("")으로 비워두도록 변경
     window.onload = function() {
-      document.getElementById('replaceRules').value = "이름->■■";
-      document.getElementById('inputText').value = `\`\`\`\n[ #39〡🌸2031년 04월 14일 월요일〡11:05〡황궁 동궁전 황태자 집무실〡⚪ ]\n―\n황태자 집무실｜이휘, 한재연\n\`\`\`\n\n*이 문장은 흐린 글자 테스트 구역입니다. 이 안에서 ==이휘가 천천히== 몸을 앞으로 기울였다는 부분을 드래그 해보세요. 흐린 글자 내부에서도 하이라이트 구간만큼은 투명도 간섭 없이 100% 선명하게 튀어나옵니다.*\n\n> 이휘가 천천히 몸을 앞으로 기울였다. 소파 쿠션이 그의 무게에 짓눌리며 가죽 특유의 부드러운 마찰음을 냈고, 테이블 위로 뻗은 그의 손이 재연의 찻잔을 감싸 쥔 떨리는 손 위에 가만히 포개졌다.\n> 연속된 인용구의 바(bar) 농도가 이전보다 한결 부드럽고 은은하게 정돈되었습니다.\n\n**이휘｜** "한재연."`;
+      document.getElementById('replaceRules').value = "";
+      document.getElementById('inputText').value = "";
       renderNovel();
     };
 
@@ -336,6 +333,7 @@
     document.getElementById('replaceRules').addEventListener('input', renderNovel);
 
     // 드래그 하이라이트 로직
+    const novelView = document.getElementById('novelView');
     const floatBtn = document.getElementById('floatingHighlightBtn');
 
     novelView.addEventListener('mouseup', function(e) {
