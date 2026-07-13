@@ -18,14 +18,16 @@
       --novel-bg: #000000;
       --novel-text: #a0a0a0;
       --novel-bold: #ffffff;
-      --novel-highlight: #ffcc00;
+      --novel-highlight-bg: rgba(255, 204, 0, 0.25); /* 다크모드: 은은한 노란 배경 */
+      --novel-highlight-text: #ffcc00;               /* 다크모드: 선명한 노란 글씨 */
     }
 
     [data-theme="light"] {
       --novel-bg: #ffffff;
       --novel-text: #333333;
       --novel-bold: #000000;
-      --novel-highlight: #ffeb3b;
+      --novel-highlight-bg: #fff3bf; /* 라이트모드 변경: 가독성을 위한 부드러운 형광펜 배경 */
+      --novel-highlight-text: #000000; /* 라이트모드 변경: 글씨는 검은색으로 선명하게 */
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,7 +47,7 @@
     .guide-box { background: #e2e3e5; padding: 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; color: #383d41; }
 
     /* 프리뷰 영역 스타일 (우측) */
-    .preview-container { flex: 1; display: flex; justify-content: center; align-items: start; padding: 4px; overflow-y: auto; background: #555; }
+    .preview-container { flex: 1; display: flex; justify-content: center; align-items: start; padding: 4px; overflow-y: auto; background: #555; position: relative; }
     
     /* 실제 웹소설 캡처 구역 */
     .novel-capture-area {
@@ -57,27 +59,52 @@
       font-size: 18px;
       line-height: 1.9;
       letter-spacing: -0.03em;
-      text-align: justify;
+      text-align: left; /* 수정사항 3번: 양쪽 정렬(justify)에서 왼쪽 정렬(left)로 변경해 띄어쓰기 일정하게 수정 */
     }
 
-    /* 6번 조건: 단어 중간 끊김 방지 (keep-all) */
+    /* 단어 중간 끊김 방지 (keep-all) */
     .novel-capture-area p, .novel-capture-area blockquote {
       word-break: keep-all;
       overflow-wrap: break-word;
       margin-bottom: 1.6em;
     }
 
-    /* 1번 조건: 마크다운 규칙 스타일 정의 */
-    .novel-capture-area strong { color: var(--novel-bold); font-weight: 700; font-size: 20px; display: block; margin-top: 1.2em; margin-bottom: 0.4em; } /* 보통 소설의 이름/대사는 볼드 처리 및 약간 크게 */
-    .novel-capture-area .low-opacity { opacity: 0.45; } /* 이탤릭체 대신 낮은 투명도 */
+    /* 마크다운 규칙 스타일 정의 */
+    .novel-capture-area strong { color: var(--novel-bold); font-weight: 700; font-size: 20px; display: block; margin-top: 1.2em; margin-bottom: 0.4em; }
+    .novel-capture-area .low-opacity { opacity: 0.45; }
     .novel-capture-area blockquote { border-left: 4px solid var(--novel-text); padding-left: 15px; font-style: italic; opacity: 0.8; }
     .novel-capture-area code { font-family: monospace; background: rgba(128,128,128,0.2); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
     
-    /* 3번 조건: 강조 기능 스타일 정의 */
-    .novel-capture-area .highlight { color: var(--novel-highlight) !important; font-weight: bold; }
+    /* 수정사항 1번: 강조 기능 스타일을 글자색 단독 변경에서 형광펜 스타일(배경색 포함)로 변경 */
+    .novel-capture-area .highlight { 
+      background-color: var(--novel-highlight-bg) !important;
+      color: var(--novel-highlight-text) !important; 
+      font-weight: bold; 
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
     
     /* 빈 줄 유지 */
     .novel-capture-area .empty-line { height: 1em; margin-bottom: 0; }
+
+    /* 수정사항 2번: 드래그 시 나타날 플로팅 하이라이트 버튼 스타일 */
+    #floatingHighlightBtn {
+      position: absolute;
+      display: none;
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 9999;
+    }
+    #floatingHighlightBtn:hover {
+      background: #218838;
+    }
   </style>
 </head>
 <body>
@@ -86,7 +113,7 @@
   <div class="control-panel">
     <h2>소설 캡처 설정</h2>
     
-    <!-- 5번 조건: 라이트/다크 모드 토글 -->
+    <!-- 라이트/다크 모드 토글 -->
     <div>
       <label>테마 선택</label>
       <div class="flex-row">
@@ -101,7 +128,7 @@
       <input type="file" id="fileInput" accept=".txt,.json" onchange="handleFileUpload()">
     </div>
 
-    <!-- 2번 조건: 단어 치환 규칙 -->
+    <!-- 단어 치환 규칙 -->
     <div>
       <label>단어 치환 (형식: 원본->바꿀단어)</label>
       <textarea id="replaceRules" style="height: 60px;" placeholder="예시)&#10;이름->■■&#10;카에데->○○"></textarea>
@@ -112,14 +139,14 @@
       <label>소설 본문 입력</label>
       <div class="guide-box" style="margin-bottom: 8px;">
         • <b>**텍스트**</b> : 강조 타이틀 (흰색/검은색 두껍게)<br>
-        • <b>*텍스트*</b> : 기울임 대신 <b>낮은 투명도 반영</b><br>
-        • <b>==텍스트==</b> : <b>글자 색상 강조 (노란색 계열)</b><br>
+        • <b>*텍스트*</b> : 기울임 대신 낮은 투명도 반영<br>
+        • <b>==텍스트==</b> : 형광펜 하이라이트 강조 <b>(우측 드래그로 자동 추가 가능!)</b><br>
         • <b>&gt; 텍스트</b> : 인용구 레이아웃
       </div>
       <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
     </div>
 
-    <!-- 4번 조건: 고화질 PNG 다운로드 버튼 -->
+    <!-- 고화질 PNG 다운로드 버튼 -->
     <button class="btn btn-success" onclick="downloadPNG()">고화질 PNG 다운로드</button>
   </div>
 
@@ -129,6 +156,9 @@
       <!-- 자바스크립트에 의해 렌더링된 결과가 들어가는 곳 -->
     </div>
   </div>
+
+  <!-- 수정사항 2번: 드래그 시 생성될 플로팅 버튼 생성 -->
+  <button id="floatingHighlightBtn">✍️ 하이라이트 추가</button>
 
   <script>
     // 샘플 데이터 초기 세팅
@@ -142,7 +172,6 @@
     function setTheme(theme) {
       const novelView = document.getElementById('novelView');
       novelView.setAttribute('data-theme', theme);
-      // 버튼 색상 피드백을 위한 스타일 스위칭 가능
     }
 
     // 파일 로드 처리 (.txt 및 .json 지원)
@@ -157,7 +186,6 @@
         if (file.name.endsWith('.json')) {
           try {
             const jsonObj = JSON.parse(contents);
-            // json 내부의 text 혹은 content 키값을 찾고 없으면 통째로 파싱
             document.getElementById('inputText').value = jsonObj.content || jsonObj.text || JSON.stringify(jsonObj, null, 2);
           } catch (err) {
             alert('올바른 JSON 형식이 아닙니다.');
@@ -182,7 +210,6 @@
         if (rule.includes('->')) {
           const [target, replacement] = rule.split('->');
           if (target.trim()) {
-            // 정규식을 이용해 텍스트 내의 모든 해당 단어를 치환
             const safeTarget = target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); // 특수문자 이스케이프
             const regex = new RegExp(safeTarget, 'g');
             rawText = rawText.replace(regex, replacement);
@@ -210,10 +237,10 @@
         // **볼드** -> <strong>
         processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         
-        // *이탤릭* -> 낮은 투명도 span 수식 변경 (요청사항 1번)
+        // *이탤릭* -> 낮은 투명도 span 수식 변경
         processedLine = processedLine.replace(/\*(.*?)\*/g, '<span class="low-opacity">$1</span>');
         
-        // ==강조== -> 노란색 글씨 하이라이트 (요청사항 3번)
+        // ==강조== -> 노란색 글씨 하이라이트
         processedLine = processedLine.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
         
         // ```코드``` -> <code>
@@ -223,7 +250,7 @@
         if (isBlockquote) {
           resultHtml += `<blockquote>${processedLine}</blockquote>`;
         } else if (line.trim() === '') {
-          resultHtml += `<p class="empty-line">&nbsp;</p>`; // 빈 줄 간격 유지
+          resultHtml += `<p class="empty-line">&nbsp;</p>`; 
         } else {
           resultHtml += `<p>${processedLine}</p>`;
         }
@@ -232,18 +259,15 @@
       novelView.innerHTML = resultHtml;
     }
 
-    // 4번 조건:html2canvas 배율(Scale)을 높여 고화질로 캡처 다운로드
+    // html2canvas 배율(Scale)을 높여 고화질로 캡처 다운로드
     function downloadPNG() {
       const novelView = document.getElementById('novelView');
-      
-      // 혹시 모를 치환/렌더링 상태를 최종 업데이트
       renderNovel();
 
-      // 스케일을 3으로 주어 모니터 해상도보다 3배 선명한 초고화질 이미지 확보
       html2canvas(novelView, {
         scale: 3, 
         useCORS: true,
-        backgroundColor: null // 투명도 유지 혹은 CSS 정의값 추종
+        backgroundColor: null 
       }).then(canvas => {
         const link = document.createElement('a');
         link.download = '웹소설_캡처_' + new Date().getTime() + '.png';
@@ -254,8 +278,66 @@
       });
     }
     
-    // 치환 목록이 바뀌어도 실시간으로 프리뷰에 반영되도록 이벤트 연결
+    // 치환 목록 변경 이벤트 연결
     document.getElementById('replaceRules').addEventListener('input', renderNovel);
+
+    /* =======================================================
+       수정사항 2번: 프리뷰 영역 드래그 하이라이트 추가 로직 시작
+       ======================================================= */
+    const novelView = document.getElementById('novelView');
+    const floatBtn = document.getElementById('floatingHighlightBtn');
+
+    // 프리뷰에서 마우스를 뗄 때 드래그 된 텍스트가 있다면 버튼 표시
+    novelView.addEventListener('mouseup', function(e) {
+      setTimeout(() => {
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+
+        if (selectedText.length > 0) {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+
+          // 플로팅 버튼을 드래그한 선택 영역 중앙 상단에 배치
+          floatBtn.style.left = `${rect.left + window.pageXOffset + (rect.width / 2) - 60}px`;
+          floatBtn.style.top = `${rect.top + window.pageYOffset - 40}px`;
+          floatBtn.style.display = 'block';
+          
+          // 임시 데이터로 현재 드래그한 텍스트 저장
+          floatBtn.dataset.text = selectedText;
+        }
+      }, 10);
+    });
+
+    // 다른 곳을 클릭하면 플로팅 버튼 숨기기 (단, 버튼 자체를 누를 땐 예외)
+    document.addEventListener('mousedown', function(e) {
+      if (e.target !== floatBtn) {
+        floatBtn.style.display = 'none';
+      }
+    });
+
+    // 하이라이트 추가 버튼을 눌렀을 때의 동작
+    floatBtn.addEventListener('click', function() {
+      const targetText = this.dataset.text;
+      if (!targetText) return;
+
+      const textarea = document.getElementById('inputText');
+      let currentContent = textarea.value;
+
+      // 텍스트에 드래그한 문장이 정확히 포함되어 있다면 해당 구역을 == == 로 치환
+      if (currentContent.includes(targetText)) {
+        textarea.value = currentContent.replace(targetText, `==${targetText}==`);
+        renderNovel(); // 실시간 프리뷰 재렌더링
+      } else {
+        alert("텍스트 원본과 일치하는 구간을 찾지 못했습니다.\n줄바꿈(엔터)이 여러 개 포함되었는지 확인해 주세요.");
+      }
+
+      // 상태 초기화
+      floatBtn.style.display = 'none';
+      window.getSelection().removeAllRanges();
+    });
+    /* =======================================================
+       드래그 하이라이트 로직 끝
+       ======================================================= */
   </script>
 </body>
 </html>
