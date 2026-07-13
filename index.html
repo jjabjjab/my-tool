@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>웹소설 스타일 캡처 생성기</title>
   <!-- 고화질 이미지 저장을 위한 라이브러리 로드 -->
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js)"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
   <style>
     /* 기본 레이아웃 변수 설정 (라이트/다크 모드대응) */
@@ -20,7 +20,7 @@
       --novel-bold: #ffffff;
       --novel-highlight-bg: rgba(255, 204, 0, 0.25); 
       --novel-highlight-text: #ffcc00;               
-      --novel-code-bg: rgba(255, 255, 255, 0.12); /* 다크모드 코드블록 배경 */
+      --novel-code-bg: rgba(255, 255, 255, 0.12); 
     }
 
     [data-theme="light"] {
@@ -29,7 +29,7 @@
       --novel-bold: #000000;
       --novel-highlight-bg: #fff3bf; 
       --novel-highlight-text: #000000; 
-      --novel-code-bg: rgba(0, 0, 0, 0.06); /* 라이트모드 코드블록 배경 */
+      --novel-code-bg: rgba(0, 0, 0, 0.06); 
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -75,29 +75,33 @@
       word-break: keep-all;
       overflow-wrap: break-word;
       margin-bottom: 0; 
+      opacity: 1 !important; /* 수정사항: *로 감싸이지 않은 기본 대사/텍스트는 투명도 0(완전 불투명) 선언 */
     }
 
     /* 마크다운 규칙 스타일 정의 */
     .novel-capture-area strong { 
       color: var(--novel-bold); 
       font-weight: 700; 
+      opacity: 1 !important;
     }
-    .novel-capture-area .low-opacity { opacity: 0.45; }
     
-    /* 인용구 스타일 보완: 여백 0 상태에서 연속해서 쓰면 하나의 커다란 블록처럼 연결됨 */
+    /* 수정사항: *텍스트* 부분의 투명도를 낮춰(0.45 -> 0.75) 가독성을 선명하게 확보 */
+    .novel-capture-area .low-opacity { 
+      opacity: 0.75 !important; 
+    }
+    
+    /* 수정사항: 인용구 속 이탤릭체(font-style: italic) 및 흐림 효과(opacity)를 전면 제거 */
     .novel-capture-area blockquote { 
       border-left: 4px solid var(--novel-text); 
       padding-left: 15px; 
-      font-style: italic; 
-      opacity: 0.8; 
     }
     
-    /* 멀티라인 코드블록 서식 추가 */
+    /* 멀티라인 코드블록 서식 */
     .novel-capture-area pre {
       background-color: var(--novel-code-bg);
       padding: 10px 15px;
       border-radius: 6px;
-      white-space: pre-wrap; /* 영역 밖으로 삐져나가지 않게 자동 줄바꿈 */
+      white-space: pre-wrap; 
       font-family: monospace;
     }
     .novel-capture-area code { 
@@ -122,9 +126,6 @@
       border-radius: 4px;
       cursor: pointer; 
       transition: opacity 0.15s;
-    }
-    .novel-capture-area .highlight:hover {
-      opacity: 0.75; 
     }
     
     /* 빈 줄 유지 */
@@ -163,9 +164,9 @@
       
       <div class="guide-box" style="margin-bottom: 8px;">
         • <b>**텍스트**</b> : 강조 타이틀 (볼드)<br>
-        • <b>*텍스트*</b> : 낮은 투명도 반영<br>
+        • <b>*텍스트*</b> : 차분하게 톤 다운된 서체 (가독성 개선)<br>
         • <b>==텍스트==</b> : 형광펜 강조 (드래그 추가 / 클릭 삭제)<br>
-        • <b>&gt; 텍스트</b> : 인용구 레이아웃<br>
+        • <b>&gt; 텍스트</b> : 인용구 레이아웃 (정자체 정렬)<br>
         • <b>```멀티라인 코드```</b> : 코드블록 레이아웃
       </div>
       <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
@@ -184,7 +185,7 @@
   <script>
     window.onload = function() {
       document.getElementById('replaceRules').value = "이름->■■";
-      document.getElementById('inputText').value = `*손가락 끝에 힘이 실렸다가 다시 풀렸다. 재연의 손 위에 올려진 이휘의 엄지가 그녀의 손등을 한 번 느리게 쓸었고, 그 한 번의 접촉이 재연의 척추를 타고 올라가는 전류처럼 느껴졌을 것이다.*\n\n> 이 문장은 인용구(Blockquote) 테스트입니다.\n> 연속해서 쓰면 왼쪽 바가 길게 연결되어 정돈되어 보입니다.\n\n**이휘｜** "진심이냐고 물었지. 그래, 진심이야."\n\n\`\`\`\n// 코드블록 기능 테스트\nfunction testCodeBlock() {\n  console.log("코드블록도 완벽하게 지원됩니다.");\n}\n\`\`\``;
+      document.getElementById('inputText').value = `*손가락 끝에 힘이 실렸다가 다시 풀렸다. 재연의 손 위에 올려진 이휘의 엄지가 그녀의 손등을 한 번 느리게 쓸었고, 그 한 번의 접촉이 재연의 척추를 타고 올라가는 전류처럼 느껴졌을 것이다. 이휘는 고개를 아주 살짝 옆으로 기울이며 재연의 눈을 놓지 않은 채 입을 열었다. 그 각도에서 보면 그의 직선형 코와 턱선이 만들어내는 윤곽이 창밖의 역광을 받아 선명한 그림자를 드리우고 있었고, 흑발 사이로 스며든 햇살이 잔잔한 윤기를 만들어내고 있었다.*\n\n> 이 문장은 정자체 인용구(Blockquote) 테스트입니다.\n> 기존의 기울임과 투명도 저하가 사라져 한결 정돈되어 보입니다.\n\n**이휘｜** "진심이냐고 물었지. 그래, 진심이야. 네가 내 곁에서 다른 남자한테 8년을 쓰는 동안에도 진심이었고, 그놈이 널 버리기 전에 내가 먼저 손을 뻗었어야 했다는 후회가 진심이고, 지금 이 순간 네 앞에 앉아서 이 얘기를 하는 것도 전부 진심이야."\n\n*가볍게 던지는 말투가 아니었다. 이휘의 평소 화법에서 보기 드문, 문장 하나하나에 무게를 실어 또박또박 내려놓는 방식이었다.*`;
       renderNovel();
     };
 
@@ -221,7 +222,6 @@
       const replaceRules = document.getElementById('replaceRules').value;
       const novelView = document.getElementById('novelView');
 
-      // 단어 치환 규칙 먼저 적용
       const rules = replaceRules.split('\n');
       rules.forEach(rule => {
         if (rule.includes('->')) {
@@ -236,20 +236,16 @@
 
       const lines = rawText.split('\n');
       let resultHtml = '';
-      let inCodeBlock = false; // 코드 블록 상태 추적용 변수
+      let inCodeBlock = false;
 
       lines.forEach(line => {
-        // [수정] 1. 멀티라인 코드블록 검사 (```)
         if (line.trim().startsWith('```')) {
-          // 한 줄 짜리 예외 처리
           if (line.trim().endsWith('```') && line.trim().length > 6) {
             let codeContent = line.trim().slice(3, -3);
             let processedCode = codeContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             resultHtml += `<p><code>${processedCode}</code></p>`;
             return;
           }
-          
-          // 열고 닫는 토글 스위치
           if (!inCodeBlock) {
             inCodeBlock = true;
             resultHtml += '<pre><code>';
@@ -260,31 +256,26 @@
           return;
         }
 
-        // 코드 블록 내부 감금 상태일 때는 HTML 이스케이프만 하고 줄바꿈 추가 후 패스
         if (inCodeBlock) {
           let processedCode = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
           resultHtml += processedCode + '\n';
           return;
         }
 
-        // [수정] 2. 인용구(>) 검사 - HTML 기호 변환(Escape) 전에 원문 텍스트 상태로 먼저 검사해야 안전함
         let isBlockquote = false;
         let currentLine = line;
         if (currentLine.trim().startsWith('>')) {
           isBlockquote = true;
-          currentLine = currentLine.replace(/^\s*>\s?/, ''); // 앞의 '>' 기호 커트
+          currentLine = currentLine.replace(/^\s*>\s?/, ''); 
         }
 
-        // HTML 특수문자 안전 변환
         let processedLine = currentLine.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-        // 인라인 스타일 문법 치환
         processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         processedLine = processedLine.replace(/\*(.*?)\*/g, '<span class="low-opacity">$1</span>');
         processedLine = processedLine.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
         processedLine = processedLine.replace(/```(.*?)```/g, '<code>$1</code>');
 
-        // 최종 출력 분기
         if (isBlockquote) {
           resultHtml += `<blockquote>${processedLine}</blockquote>`;
         } else if (line.trim() === '') {
@@ -318,7 +309,6 @@
     document.getElementById('replaceRules').addEventListener('input', renderNovel);
 
     // 드래그 하이라이트 로직
-    const novelView = document.getElementById('novelView');
     const floatBtn = document.getElementById('floatingHighlightBtn');
 
     novelView.addEventListener('mouseup', function(e) {
