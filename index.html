@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>웹소설 스타일 캡처 생성기</title>
+  <!-- 고화질 이미지 저장을 위한 라이브러리 로드 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <style>
+    /* 기본 레이아웃 변수 설정 (라이트/다크 모드대응) */
+    :root {
+      --bg-control: #f8f9fa;
+      --text-control: #333;
+      --border-color: #ced4da;
+      
+      /* 캡처 본문 스타일 (기본 다크모드로 세팅) */
+      --novel-bg: #000000;
+      --novel-text: #a0a0a0;
+      --novel-bold: #ffffff;
+      --novel-highlight: #ffcc00;
+    }
+
+    [data-theme="light"] {
+      --novel-bg: #ffffff;
+      --novel-text: #333333;
+      --novel-bold: #000000;
+      --novel-highlight: #ffeb3b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; display: flex; height: 100vh; background: #e9ecef; }
+
+    /* 컨트롤 패널 스타일 (좌측) */
+    .control-panel { width: 400px; padding: 20px; background: var(--bg-control); color: var(--text-control); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+    h2 { font-size: 18px; margin-bottom: 5px; }
+    label { font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px; }
+    textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: none; }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-primary:hover { background: #0056b3; }
+    .btn-success { background: #28a745; color: white; margin-top: auto; }
+    .btn-success:hover { background: #218838; }
+    .flex-row { display: flex; gap: 10px; align-items: center; }
+    .guide-box { background: #e2e3e5; padding: 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; color: #383d41; }
+
+    /* 프리뷰 영역 스타일 (우측) */
+    .preview-container { flex: 1; display: flex; justify-content: center; align-items: start; padding: 4px; overflow-y: auto; background: #555; }
+    
+    /* 실제 웹소설 캡처 구역 */
+    .novel-capture-area {
+      width: 500px;
+      min-height: 700px;
+      background-color: var(--novel-bg);
+      padding: 60px 40px;
+      color: var(--novel-text);
+      font-size: 18px;
+      line-height: 1.9;
+      letter-spacing: -0.03em;
+      text-align: justify;
+    }
+
+    /* 6번 조건: 단어 중간 끊김 방지 (keep-all) */
+    .novel-capture-area p, .novel-capture-area blockquote {
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      margin-bottom: 1.6em;
+    }
+
+    /* 1번 조건: 마크다운 규칙 스타일 정의 */
+    .novel-capture-area strong { color: var(--novel-bold); font-weight: 700; font-size: 20px; display: block; margin-top: 1.2em; margin-bottom: 0.4em; } /* 보통 소설의 이름/대사는 볼드 처리 및 약간 크게 */
+    .novel-capture-area .low-opacity { opacity: 0.45; } /* 이탤릭체 대신 낮은 투명도 */
+    .novel-capture-area blockquote { border-left: 4px solid var(--novel-text); padding-left: 15px; font-style: italic; opacity: 0.8; }
+    .novel-capture-area code { font-family: monospace; background: rgba(128,128,128,0.2); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    
+    /* 3번 조건: 강조 기능 스타일 정의 */
+    .novel-capture-area .highlight { color: var(--novel-highlight) !important; font-weight: bold; }
+    
+    /* 빈 줄 유지 */
+    .novel-capture-area .empty-line { height: 1em; margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- 좌측 컨트롤 패널 -->
+  <div class="control-panel">
+    <h2>소설 캡처 설정</h2>
+    
+    <!-- 5번 조건: 라이트/다크 모드 토글 -->
+    <div>
+      <label>테마 선택</label>
+      <div class="flex-row">
+        <button class="btn btn-primary" onclick="setTheme('dark')">다크 모드</button>
+        <button class="btn btn-primary" style="background:#6c757d;" onclick="setTheme('light')">라이트 모드</button>
+      </div>
+    </div>
+
+    <!-- 파일 입력 기능 -->
+    <div>
+      <label>텍스트 파일 가져오기 (.txt / .json)</label>
+      <input type="file" id="fileInput" accept=".txt,.json" onchange="handleFileUpload()">
+    </div>
+
+    <!-- 2번 조건: 단어 치환 규칙 -->
+    <div>
+      <label>단어 치환 (형식: 원본->바꿀단어)</label>
+      <textarea id="replaceRules" style="height: 60px;" placeholder="예시)&#10;이름->■■&#10;카에데->○○"></textarea>
+    </div>
+
+    <!-- 텍스트 입력창 및 마크다운 문법 안내 -->
+    <div style="flex: 1; display: flex; flex-direction: column;">
+      <label>소설 본문 입력</label>
+      <div class="guide-box" style="margin-bottom: 8px;">
+        • <b>**텍스트**</b> : 강조 타이틀 (흰색/검은색 두껍게)<br>
+        • <b>*텍스트*</b> : 기울임 대신 <b>낮은 투명도 반영</b><br>
+        • <b>==텍스트==</b> : <b>글자 색상 강조 (노란색 계열)</b><br>
+        • <b>&gt; 텍스트</b> : 인용구 레이아웃
+      </div>
+      <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
+    </div>
+
+    <!-- 4번 조건: 고화질 PNG 다운로드 버튼 -->
+    <button class="btn btn-success" onclick="downloadPNG()">고화질 PNG 다운로드</button>
+  </div>
+
+  <!-- 우측 실시간 프리뷰 영역 -->
+  <div class="preview-container">
+    <div class="novel-capture-area" id="novelView" data-theme="dark">
+      <!-- 자바스크립트에 의해 렌더링된 결과가 들어가는 곳 -->
+    </div>
+  </div>
+
+  <script>
+    // 샘플 데이터 초기 세팅
+    window.onload = function() {
+      document.getElementById('replaceRules').value = "이름->■■\n설명->설명";
+      document.getElementById('inputText').value = `그는 필사적으로 변명했다. 그의 *설명에 따르면* '카에데'는, 지금으로부터 약 300년 전, 그가 아직 신이 되기 전 방랑하던 시절에 잠시 머물렀던 마을의 찻집 주인이었다고 한다.\n매일같이 최고급 유부초밥과 달콤한 떡을 바치며 그의 신격을 알아보고 극진히 모셨던, 신앙심 깊은 인간.\n\n**이누가미 타마오**\n정말로 그뿐이다! 네놈이 끓여준 차가 너무 맛있어서... 그 시절의 유부초밥이 떠올랐을 뿐이란 말이다! ==나에게 카에데는 오직 유부초밥과 동의어일 뿐이다!== 믿어다오!\n\n그의 필사적인 외침은, 사랑의 배신이 아닌 식탐의 배신을 고백하는 처절한 몸부림이었다. ==그는 자신의 결백을 증명하려는 듯, 눈물까지 그렁거리며 이름의 바짓가랑이를 붙잡았다.==`;
+      renderNovel();
+    };
+
+    // 테마 체인지 함수
+    function setTheme(theme) {
+      const novelView = document.getElementById('novelView');
+      novelView.setAttribute('data-theme', theme);
+      // 버튼 색상 피드백을 위한 스타일 스위칭 가능
+    }
+
+    // 파일 로드 처리 (.txt 및 .json 지원)
+    function handleFileUpload() {
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const contents = e.target.result;
+        if (file.name.endsWith('.json')) {
+          try {
+            const jsonObj = JSON.parse(contents);
+            // json 내부의 text 혹은 content 키값을 찾고 없으면 통째로 파싱
+            document.getElementById('inputText').value = jsonObj.content || jsonObj.text || JSON.stringify(jsonObj, null, 2);
+          } catch (err) {
+            alert('올바른 JSON 형식이 아닙니다.');
+          }
+        } else {
+          document.getElementById('inputText').value = contents;
+        }
+        renderNovel();
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    // 핵심: 텍스트 가공 및 화면 렌더링 함수
+    function renderNovel() {
+      let rawText = document.getElementById('inputText').value;
+      const replaceRules = document.getElementById('replaceRules').value;
+      const novelView = document.getElementById('novelView');
+
+      // 1. 단어 치환(Replace) 반영
+      const rules = replaceRules.split('\n');
+      rules.forEach(rule => {
+        if (rule.includes('->')) {
+          const [target, replacement] = rule.split('->');
+          if (target.trim()) {
+            // 정규식을 이용해 텍스트 내의 모든 해당 단어를 치환
+            const safeTarget = target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); // 특수문자 이스케이프
+            const regex = new RegExp(safeTarget, 'g');
+            rawText = rawText.replace(regex, replacement);
+          }
+        }
+      });
+
+      // 2. 줄바꿈 단위로 쪼개서 마크다운 처리 수행
+      const lines = rawText.split('\n');
+      let resultHtml = '';
+
+      lines.forEach(line => {
+        let isBlockquote = false;
+        let processedLine = line;
+
+        // HTML 태그 오작동 방지를 위한 기본 이스케이프
+        processedLine = processedLine.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        // 인용구(>) 체크 (가장 먼저 처리)
+        if (line.trim().startsWith('&gt;')) {
+          isBlockquote = true;
+          processedLine = processedLine.replace(/^&gt;\s?/, '');
+        }
+
+        // **볼드** -> <strong>
+        processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // *이탤릭* -> 낮은 투명도 span 수식 변경 (요청사항 1번)
+        processedLine = processedLine.replace(/\*(.*?)\*/g, '<span class="low-opacity">$1</span>');
+        
+        // ==강조== -> 노란색 글씨 하이라이트 (요청사항 3번)
+        processedLine = processedLine.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
+        
+        // ```코드``` -> <code>
+        processedLine = processedLine.replace(/```(.*?)```/g, '<code>$1</code>');
+
+        // 최종 HTML 태그 조립
+        if (isBlockquote) {
+          resultHtml += `<blockquote>${processedLine}</blockquote>`;
+        } else if (line.trim() === '') {
+          resultHtml += `<p class="empty-line">&nbsp;</p>`; // 빈 줄 간격 유지
+        } else {
+          resultHtml += `<p>${processedLine}</p>`;
+        }
+      });
+
+      novelView.innerHTML = resultHtml;
+    }
+
+    // 4번 조건:html2canvas 배율(Scale)을 높여 고화질로 캡처 다운로드
+    function downloadPNG() {
+      const novelView = document.getElementById('novelView');
+      
+      // 혹시 모를 치환/렌더링 상태를 최종 업데이트
+      renderNovel();
+
+      // 스케일을 3으로 주어 모니터 해상도보다 3배 선명한 초고화질 이미지 확보
+      html2canvas(novelView, {
+        scale: 3, 
+        useCORS: true,
+        backgroundColor: null // 투명도 유지 혹은 CSS 정의값 추종
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = '웹소설_캡처_' + new Date().getTime() + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }).catch(err => {
+        alert('이미지 생성 중 오류가 발생했습니다: ' + err);
+      });
+    }
+    
+    // 치환 목록이 바뀌어도 실시간으로 프리뷰에 반영되도록 이벤트 연결
+    document.getElementById('replaceRules').addEventListener('input', renderNovel);
+  </script>
+</body>
+</html>
