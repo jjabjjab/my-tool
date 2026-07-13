@@ -86,6 +86,14 @@
       color: var(--novel-text);
     }
 
+    /* [추가] 마크다운 구분선 스타일 정의 */
+    .novel-capture-area hr {
+      border: none;
+      border-top: 1px solid var(--novel-bar-color);
+      margin: 1.5em 0;
+      opacity: 1 !important;
+    }
+
     /* 마크다운 규칙 스타일 정의 */
     .novel-capture-area strong { 
       color: var(--novel-bold); 
@@ -185,6 +193,7 @@
         • <b>*텍스트*</b> : 차분하게 톤 다운된 서체<br>
         • <b>==텍스트==</b> : 글자색 노란색 변경 (드래그 추가 / 클릭 삭제)<br>
         • <b>&gt; 텍스트</b> : 인용구 레이아웃<br>
+        • <b>---</b> : 장면 전환용 구분선<br>
         • <b>```멀티라인 코드```</b> : 코드블록 레이아웃
       </div>
       <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
@@ -201,7 +210,6 @@
   <button id="floatingHighlightBtn" style="position: absolute; display: none; background: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 9999;">✍️ 하이라이트 추가</button>
 
   <script>
-    // 수정사항: 사이트 최초 로드 시 예시 텍스트를 공백("")으로 비워두도록 변경
     window.onload = function() {
       document.getElementById('replaceRules').value = "";
       document.getElementById('inputText').value = "";
@@ -218,6 +226,7 @@
       document.getElementById('widthValue').innerText = width + 'px';
     }
 
+    // 파일 업로드 핸들러
     function handleFileUpload() {
       const fileInput = document.getElementById('fileInput');
       const file = fileInput.files[0];
@@ -241,6 +250,7 @@
       reader.readAsText(file, 'UTF-8');
     }
 
+    // 핵심 렌더링 함수
     function renderNovel() {
       let rawText = document.getElementById('inputText').value;
       const replaceRules = document.getElementById('replaceRules').value;
@@ -263,6 +273,7 @@
       let inCodeBlock = false;
 
       lines.forEach(line => {
+        // 1. 멀티라인 코드블록 검사
         if (line.trim().startsWith('```')) {
           if (line.trim().endsWith('```') && line.trim().length > 6) {
             let codeContent = line.trim().slice(3, -3);
@@ -286,6 +297,13 @@
           return;
         }
 
+        // [추가] 2. 마크다운 구분선(---) 검사
+        if (line.trim() === '---') {
+          resultHtml += '<hr>';
+          return;
+        }
+
+        // 3. 인용구(>) 검사
         let isBlockquote = false;
         let currentLine = line;
         if (currentLine.trim().startsWith('>')) {
@@ -295,6 +313,7 @@
 
         let processedLine = currentLine.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+        // 인라인 기호 치환
         processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         processedLine = processedLine.replace(/\*(.*?)\*/g, '<span class="low-opacity">$1</span>');
         processedLine = processedLine.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
@@ -312,6 +331,7 @@
       novelView.innerHTML = resultHtml;
     }
 
+    // 캡처 다운로드 함수
     function downloadPNG() {
       const novelView = document.getElementById('novelView');
       renderNovel();
@@ -333,7 +353,6 @@
     document.getElementById('replaceRules').addEventListener('input', renderNovel);
 
     // 드래그 하이라이트 로직
-    const novelView = document.getElementById('novelView');
     const floatBtn = document.getElementById('floatingHighlightBtn');
 
     novelView.addEventListener('mouseup', function(e) {
