@@ -20,6 +20,10 @@
       --novel-bold: #ffffff;         
       --novel-highlight-text: #ffeb3b; 
       --novel-code-bg: rgba(255, 255, 255, 0.12); 
+      
+      /* [수정사항 1, 2] 다크모드 전용 불투명도 조절 변수 */
+      --novel-bar-color: rgba(255, 255, 255, 0.25); /* 인용구 바 색상 투명도 낮춤 (기존 대비 대폭 완화) */
+      --novel-text-low: rgba(255, 255, 255, 0.55);  /* *감싸인 텍스트* 불투명도 조절 (0.65 -> 0.55 수준으로 조절) */
     }
 
     [data-theme="light"] {
@@ -28,6 +32,10 @@
       --novel-bold: #000000;
       --novel-highlight-text: #b45309; 
       --novel-code-bg: rgba(0, 0, 0, 0.06); 
+      
+      /* [수정사항 1, 2] 라이트모드 전용 불투명도 조절 변수 */
+      --novel-bar-color: rgba(0, 0, 0, 0.18);      /* 인용구 바 색상 투명도 낮춤 */
+      --novel-text-low: rgba(0, 0, 0, 0.48);         /* *감싸인 텍스트* 불투명도 조절 */
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,7 +53,6 @@
     label { font-size: 13px; font-weight: bold; display: block; }
     textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: none; }
     
-    /* 슬라이더 스타일 커스텀 */
     input[type="range"] { width: 100%; margin-top: 5px; cursor: pointer; }
 
     .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; }
@@ -61,7 +68,7 @@
     
     /* 실제 웹소설 캡처 구역 */
     .novel-capture-area {
-      width: 500px; /* 기본값 500px 유지, JS로 실시간 조절됨 */
+      width: 500px; 
       min-height: 700px;
       background-color: var(--novel-bg);
       padding: 40px; 
@@ -88,12 +95,14 @@
       opacity: 1 !important;
     }
     
+    /* 수정사항 2번: 부모 레이어 투명도 상속 문제를 막기 위해 opacity 대신 글자색(RGBA) 자체를 제어하도록 전면 수정 */
     .novel-capture-area .low-opacity { 
-      opacity: 0.65 !important; 
+      color: var(--novel-text-low) !important;
     }
     
+    /* 수정사항 1번: 인용구 바(bar)의 색상을 별도 분리하여 불투명도를 은은하게 낮춤 */
     .novel-capture-area blockquote { 
-      border-left: 4px solid var(--novel-text); 
+      border-left: 4px solid var(--novel-bar-color); 
       padding-left: 15px; 
       font-style: normal !important; 
     }
@@ -123,7 +132,7 @@
     .novel-capture-area .highlight { 
       background-color: transparent !important;
       color: var(--novel-highlight-text) !important; 
-      opacity: 1 !important;
+      opacity: 1 !important; /* 흐린 문장 안에서도 하이라이트는 100% 무조건 선명하게 보장 */
       padding: 0;
       border-radius: 0;
       cursor: pointer; 
@@ -151,7 +160,6 @@
       </div>
     </div>
 
-    <!-- 수정사항: 실시간 폭 조절 슬라이더 추가 -->
     <div>
       <div class="flex-row" style="justify-content: space-between;">
         <label>캡처 영역 폭(너비) 조절</label>
@@ -180,7 +188,7 @@
         • <b>**텍스트**</b> : 강조 타이틀 (볼드)<br>
         • <b>*텍스트*</b> : 차분하게 톤 다운된 서체 (가독성 개선)<br>
         • <b>==텍스트==</b> : 글자색 노란색 변경 (드래그 추가 / 클릭 삭제)<br>
-        • <b>&gt; 텍스트</b> : 인용구 레이아웃 (정자체 100% 선명)<br>
+        • <b>&gt; 텍스트</b> : 인용구 레이아웃 (바 투명도 개선)<br>
         • <b>```멀티라인 코드```</b> : 코드블록 레이아웃
       </div>
       <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
@@ -199,7 +207,7 @@
   <script>
     window.onload = function() {
       document.getElementById('replaceRules').value = "이름->■■";
-      document.getElementById('inputText').value = `\`\`\`\n[ #39〡🌸2031년 04월 14일 월요일〡11:05〡황궁 동궁전 황태자 집무실〡⚪ ]\n―\n황태자 집무실｜이휘, 한재연｜재연의 떨리는 확인 질문에 이휘가 답하는 순간\n이휘｜진심이냐고 묻는 네가 더 웃겨\n\`\`\`\n\n*찻잔 위로 피어오르는 수증기가 재연의 떨리는 손끝을 감싸 안았다가 흩어졌다. 커피가 아닌 다즐링이었다. 재연이 긴장하면 카페인보다 홍차를 선호한다는 사실을 이휘가 기억하고 있다는 증거가 찻잔 속 호박빛 액체에 고스란히 담겨 있었으나, 지금 재연의 시선은 차가 아닌 맞은편에 앉은 남자의 얼굴에 꽂혀 있었다. 이휘는 소파 등받이에 한쪽 팔을 걸친 채 다리를 느슨하게 꼬고 앉아 있었고, 재연의 질문이 공기 중에 떨리며 매달려 있는 동안 아무런 대답도 하지 않은 채 그녀의 눈을 들여다보고 있었다. 집무실 창밖으로 벚꽃 한 잎이 유리창에 부딪혀 살짝 미끄러지는 소리가 날 만큼의 긴 침묵이 흘렀고, 그 침묵 안에서 재연의 심장이 미친 듯이 뛰고 있다는 사실을 이휘는 그녀의 목 옆 맥박으로 읽고 있었다.*\n\n> 이휘가 ==천천히 몸을 앞으로== 기울였다. 소파 쿠션이 그의 무게에 짓눌리며 가죽 특유의 부드러운 마찰음을 냈고, 테이블 위로 뻗은 그의 손이 재연의 찻잔을 감싸 쥔 떨리는 손 위에 가만히 포개졌다. 체온이 찻잔의 온기와 섞여 재연의 손가락 마디마디를 감싸는 감각이 퍼져나갔고, 이휘의 큰 손바닥은 재연의 양 손을 완전히 덮을 만큼 넉넉했다. 그 손이 아주 미세한 힘으로 한 번 쥐어졌다가 풀렸다. 괜찮다는 뜻인지, 진정하라는 뜻인지, 혹은 그 둘 다인지.\n\n**이휘｜** "한재연."`;
+      document.getElementById('inputText').value = `\`\`\`\n[ #39〡🌸2031년 04월 14일 월요일〡11:05〡황궁 동궁전 황태자 집무실〡⚪ ]\n―\n황태자 집무실｜이휘, 한재연\n\`\`\`\n\n*이 문장은 흐린 글자 테스트 구역입니다. 이 안에서 ==이휘가 천천히== 몸을 앞으로 기울였다는 부분을 드래그 해보세요. 흐린 글자 내부에서도 하이라이트 구간만큼은 투명도 간섭 없이 100% 선명하게 튀어나옵니다.*\n\n> 이휘가 천천히 몸을 앞으로 기울였다. 소파 쿠션이 그의 무게에 짓눌리며 가죽 특유의 부드러운 마찰음을 냈고, 테이블 위로 뻗은 그의 손이 재연의 찻잔을 감싸 쥔 떨리는 손 위에 가만히 포개졌다.\n> 연속된 인용구의 바(bar) 농도가 이전보다 한결 부드럽고 은은하게 정돈되었습니다.\n\n**이휘｜** "한재연."`;
       renderNovel();
     };
 
@@ -208,7 +216,6 @@
       novelView.setAttribute('data-theme', theme);
     }
 
-    // [추가] 실시간 너비 변경 함수
     function changeWidth(width) {
       document.getElementById('novelView').style.width = width + 'px';
       document.getElementById('widthValue').innerText = width + 'px';
