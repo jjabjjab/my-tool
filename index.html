@@ -18,7 +18,7 @@
       --novel-bg: #000000;
       --novel-text: #ffffff;         
       --novel-bold: #ffffff;         
-      --novel-highlight-text: #ffeb3b; /* 수정사항: 다크모드에서 선명하게 튀는 레몬 노란색 */
+      --novel-highlight-text: #ffeb3b; 
       --novel-code-bg: rgba(255, 255, 255, 0.12); 
     }
 
@@ -26,7 +26,7 @@
       --novel-bg: #ffffff;
       --novel-text: #000000;         
       --novel-bold: #000000;
-      --novel-highlight-text: #b45309; /* 수정사항: 흰 배경(라이트모드)에서도 눈 안 아프고 선명하게 보이는 깊은 앰버 노란색 */
+      --novel-highlight-text: #b45309; 
       --novel-code-bg: rgba(0, 0, 0, 0.06); 
     }
 
@@ -44,6 +44,10 @@
     h2 { font-size: 18px; margin-bottom: 5px; }
     label { font-size: 13px; font-weight: bold; display: block; }
     textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: none; }
+    
+    /* 슬라이더 스타일 커스텀 */
+    input[type="range"] { width: 100%; margin-top: 5px; cursor: pointer; }
+
     .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; }
     .btn-primary { background: #007bff; color: white; }
     .btn-primary:hover { background: #0056b3; }
@@ -57,7 +61,7 @@
     
     /* 실제 웹소설 캡처 구역 */
     .novel-capture-area {
-      width: 500px;
+      width: 500px; /* 기본값 500px 유지, JS로 실시간 조절됨 */
       min-height: 700px;
       background-color: var(--novel-bg);
       padding: 40px; 
@@ -115,7 +119,7 @@
       font-size: 0.9em;
     }
     
-    /* 수정사항: 배경색 채우기(형광펜) 및 두껍게 속성을 완전히 제거하고 오직 글자 색상만 100% 선명하게 타겟팅 */
+    /* 하이라이트 스타일 */
     .novel-capture-area .highlight { 
       background-color: transparent !important;
       color: var(--novel-highlight-text) !important; 
@@ -145,6 +149,15 @@
         <button class="btn btn-primary" onclick="setTheme('dark')">다크 모드</button>
         <button class="btn btn-primary" style="background:#6c757d;" onclick="setTheme('light')">라이트 모드</button>
       </div>
+    </div>
+
+    <!-- 수정사항: 실시간 폭 조절 슬라이더 추가 -->
+    <div>
+      <div class="flex-row" style="justify-content: space-between;">
+        <label>캡처 영역 폭(너비) 조절</label>
+        <span id="widthValue" style="font-size: 13px; font-weight: bold; color: #007bff;">500px</span>
+      </div>
+      <input type="range" id="widthSlider" min="400" max="800" step="10" value="500" oninput="changeWidth(this.value)">
     </div>
 
     <div>
@@ -193,6 +206,12 @@
     function setTheme(theme) {
       const novelView = document.getElementById('novelView');
       novelView.setAttribute('data-theme', theme);
+    }
+
+    // [추가] 실시간 너비 변경 함수
+    function changeWidth(width) {
+      document.getElementById('novelView').style.width = width + 'px';
+      document.getElementById('widthValue').innerText = width + 'px';
     }
 
     function handleFileUpload() {
