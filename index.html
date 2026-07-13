@@ -60,11 +60,11 @@
       width: 500px;
       min-height: 700px;
       background-color: var(--novel-bg);
-      padding: 40px; /* 수정사항 1번: 상하여백을 좌우여백(40px)과 동일하게 맞춰 균형감 유도 */
+      padding: 40px; 
       color: var(--novel-text);
-      font-size: 18px;
-      line-height: 1.9;
-      letter-spacing: -0.03em;
+      font-size: 17px;
+      line-height: 1.85; /* 수정사항: 캡처본 서체 비율에 맞춰 너무 답답하지 않고 쾌적하게 조정 */
+      letter-spacing: -0.02em;
       text-align: left; 
     }
 
@@ -72,11 +72,15 @@
     .novel-capture-area p, .novel-capture-area blockquote {
       word-break: keep-all;
       overflow-wrap: break-word;
-      margin-bottom: 0.8em; /* 수정사항 2번: 엔터 줄바꿈 시 문단 간격을 1.6em에서 0.8em으로 줄여 붕 뜨는 현상 해결 */
+      margin-bottom: 1.1em; /* 수정사항: 엔터 단락 간격을 쾌적한 비례감으로 압축 */
     }
 
     /* 마크다운 규칙 스타일 정의 */
-    .novel-capture-area strong { color: var(--novel-bold); font-weight: 700; font-size: 20px; display: block; margin-top: 1.2em; margin-bottom: 0.4em; }
+    /* 수정사항: 기존의 display: block과 과도한 마진, 폰트 크기 강제 확대를 제거하여 원문 그대로 인라인 유지 */
+    .novel-capture-area strong { 
+      color: var(--novel-bold); 
+      font-weight: 700; 
+    }
     .novel-capture-area .low-opacity { opacity: 0.45; }
     .novel-capture-area blockquote { border-left: 4px solid var(--novel-text); padding-left: 15px; font-style: italic; opacity: 0.8; }
     .novel-capture-area code { font-family: monospace; background: rgba(128,128,128,0.2); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
@@ -88,11 +92,11 @@
       font-weight: bold; 
       padding: 2px 4px;
       border-radius: 4px;
-      cursor: pointer; /* 수정사항 3번: 클릭하여 삭제할 수 있음을 보여주는 포인터 커서 */
+      cursor: pointer; 
       transition: opacity 0.15s;
     }
     .novel-capture-area .highlight:hover {
-      opacity: 0.75; /* 마우스를 올리면 살짝 투명해져 클릭 유도 */
+      opacity: 0.75; 
     }
     
     /* 빈 줄 유지 */
@@ -143,16 +147,15 @@
     </div>
 
     <div style="flex: 1; display: flex; flex-direction: column;">
-      <!-- 수정사항 3번: 전체 하이라이트를 원클릭으로 날려버리는 서브 버튼 추가 -->
       <div class="flex-row" style="justify-content: space-between; margin-bottom: 5px; align-items: center;">
         <label>소설 본문 입력</label>
         <button class="btn" style="width: auto; padding: 4px 10px; font-size: 11px; background: #dc3545; color: white;" onclick="clearAllHighlights()">하이라이트 전체 삭제</button>
       </div>
       
       <div class="guide-box" style="margin-bottom: 8px;">
-        • <b>**텍스트**</b> : 강조 타이틀 (흰색/검은색 두껍게)<br>
+        • <b>**텍스트**</b> : 강조 타이틀 (글자색 반전 및 볼드)<br>
         • <b>*텍스트*</b> : 기울임 대신 낮은 투명도 반영<br>
-        • <b>==텍스트==</b> : 형광펜 강조 (드래그로 추가 / <b>클릭하여 개별 삭제</b>)
+        • <b>==텍스트==</b> : 형광펜 강조 (드래그로 추가 / 클릭하여 개별 삭제)
       </div>
       <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
     </div>
@@ -169,8 +172,9 @@
 
   <script>
     window.onload = function() {
-      document.getElementById('replaceRules').value = "이름->■■\n설명->설명";
-      document.getElementById('inputText').value = `그는 필사적으로 변명했다. 그의 *설명에 따르면* '카에데'는, 지금으로부터 약 300년 전, 그가 아직 신이 되기 전 방랑하던 시절에 잠시 머물렀던 마을의 찻집 주인이었다고 한다.\n매일같이 최고급 유부초밥과 달콤한 떡을 바치며 그의 신격을 알아보고 극진히 모셨던, 신앙심 깊은 인간.\n\n**이누가미 타마오**\n정말로 그뿐이다! 네놈이 끓여준 차가 너무 맛있어서... 그 시절의 유부초밥이 떠올랐을 뿐이란 말이다! ==나에게 카에데는 오직 유부초밥과 동의어일 뿐이다!== 믿어다오!\n\n그의 필사적인 외침은, 사랑의 배신이 아닌 식탐의 배신을 고백하는 처절한 몸부림이었다. ==그는 자신의 결백을 증명하려는 듯, 눈물까지 그렁거리며 이름의 바짓가랑이를 붙잡았다.==`;
+      document.getElementById('replaceRules').value = "이름->■■";
+      // 샘플 데이터를 요청하신 실전 원문 예시로 전면 교체
+      document.getElementById('inputText').value = `*손가락 끝에 힘이 실렸다가 다시 풀렸다. 재연의 손 위에 올려진 이휘의 엄지가 그녀의 손등을 한 번 느리게 쓸었고, 그 한 번의 접촉이 재연의 척추를 타고 올라가는 전류처럼 느껴졌을 것이다. 이휘는 고개를 아주 살짝 옆으로 기울이며 재연의 눈을 놓지 않은 채 입을 열었다. 그 각도에서 보면 그의 직선형 코와 턱선이 만들어내는 윤곽이 창밖의 역광을 받아 선명한 그림자를 드리우고 있었고, 흑발 사이로 스며든 햇살이 잔잔한 윤기를 만들어내고 있었다.*\n\n**이휘｜** "진심이냐고 물었지. 그래, 진심이야. 네가 내 곁에서 다른 남자한테 8년을 쓰는 동안에도 진심이었고, 그놈이 널 버리기 전에 내가 먼저 손을 뻗었어야 했다는 후회가 진심이고, 지금 이 순간 네 앞에 앉아서 이 얘기를 하는 것도 전부 진심이야."\n\n*가볍게 던지는 말투가 아니었다. 이휘의 평소 화법에서 보기 드문, 문장 하나하나에 무게를 실어 또박또박 내려놓는 방식이었다. 마치 오래 묵혀두었던 서랍 속 물건을 하나씩 꺼내 테이블 위에 정렬하듯, 자신의 감정을 사실의 형태로 나열하고 있었다. 재연의 눈이 점점 커지며 찻잔을 감싼 손에서 힘이 빠져나가는 것이 느껴졌고, 이휘는 그 반응을 놓치지 않은 채 입꼬리를 아주 미세하게 끌어올렸다. 그러나 그 미소는 아까 브리핑실에서 보여준 여유만만한 것과는 결이 달랐다. 조금 더 부드럽고, 조금 더 취약한 무언가가 그 안에 스며 있었다.*`;
       renderNovel();
     };
 
@@ -315,17 +319,11 @@
       window.getSelection().removeAllRanges();
     });
 
-    /* =======================================================
-       수정사항 3번: 하이라이트 클릭 삭제 및 전체 삭제 로직
-       ======================================================= */
-    
-    // 1. 하이라이트 개별 클릭 시 삭제 (이벤트 위임 활용)
+    // 하이라이트 클릭 삭제 및 전체 삭제 로직
     novelView.addEventListener('click', function(e) {
       if (e.target.classList.contains('highlight')) {
-        // 유저가 글자를 지우려고 클릭한 게 아니라 단순 드래그 선택 중일 때는 작동 차단
         if (window.getSelection().toString().trim().length > 0) return;
 
-        // 현재 렌더링된 모든 하이라이트 리스트 중 내가 클릭한 하이라이트의 순번(Index) 계산
         const highlights = Array.from(novelView.querySelectorAll('.highlight'));
         const targetIndex = highlights.indexOf(e.target);
 
@@ -333,26 +331,23 @@
         let content = textarea.value;
 
         let currentMatchIdx = 0;
-        // 정규식을 돌며 소스코드 안의 n번째 ==텍스트==를 찾아 기호만 삭제
         textarea.value = content.replace(/==(.*?)==/g, function(match, p1) {
           if (currentMatchIdx === targetIndex) {
             currentMatchIdx++;
-            return p1; // 기호(==)를 떼어낸 원본 텍스트만 리턴
+            return p1; 
           }
           currentMatchIdx++;
-          return match; // 나머지는 그대로 유지
+          return match; 
         });
 
-        renderNovel(); // 화면 즉시 새로고침
+        renderNovel(); 
       }
     });
 
-    // 2. 모든 하이라이트 일괄 해제 기능
     function clearAllHighlights() {
       const textarea = document.getElementById('inputText');
       let content = textarea.value;
       
-      // 문서 내부의 모든 ==기호를 찾아서 정규식으로 기호만 싹 걷어냄
       textarea.value = content.replace(/==(.*?)==/g, '$1');
       renderNovel();
     }
