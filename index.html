@@ -6,6 +6,8 @@
   <title>웹소설 스타일 캡처 생성기</title>
   <!-- 고화질 이미지 저장을 위한 라이브러리 로드 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- 완전한 마크다운 파싱을 위한 Marked.js 라이브러리 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   
   <style>
     /* 기본 레이아웃 변수 설정 (라이트/다크 모드대응) */
@@ -16,23 +18,23 @@
       
       /* 캡처 본문 스타일 (기본 다크모드) */
       --novel-bg: #000000;
-      --novel-text: #ffffff;         
-      --novel-bold: #ffffff;         
+      --novel-text: #ffffff;        
+      --novel-bold: #ffffff;        
       --novel-highlight-text: #ffeb3b; 
       --novel-code-bg: rgba(255, 255, 255, 0.12); 
       
       --novel-bar-color: rgba(255, 255, 255, 0.25); 
-      --novel-text-low: rgba(255, 255, 255, 0.55);  
+      --novel-text-low: rgba(255, 255, 255, 0.55);   
     }
 
     [data-theme="light"] {
       --novel-bg: #ffffff;
-      --novel-text: #000000;         
+      --novel-text: #000000;        
       --novel-bold: #000000;
       --novel-highlight-text: #b45309; 
       --novel-code-bg: rgba(0, 0, 0, 0.06); 
       
-      --novel-bar-color: rgba(0, 0, 0, 0.18);      
+      --novel-bar-color: rgba(0, 0, 0, 0.18);       
       --novel-text-low: rgba(0, 0, 0, 0.48);         
     }
 
@@ -62,7 +64,7 @@
     .guide-box { background: #e2e3e5; padding: 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; color: #383d41; }
 
     /* 프리뷰 영역 스타일 (우측) */
-    .preview-container { flex: 1; display: flex; justify-content: center; align-items: start; padding: 4px; overflow-y: auto; background: #555; position: relative; }
+    .preview-container { flex: 1; display: flex; justify-content: center; align-items: start; padding: 20px; overflow-y: auto; background: #555; position: relative; }
     
     /* 실제 웹소설 캡처 구역 */
     .novel-capture-area {
@@ -77,51 +79,130 @@
       text-align: left; 
     }
 
-    /* 단어 중간 끊김 방지 및 여백 통일 */
-    .novel-capture-area p, .novel-capture-area blockquote, .novel-capture-area pre {
+    /* 단어 중간 끊김 방지 및 표준 요소 서식 */
+    .novel-capture-area p, 
+    .novel-capture-area blockquote, 
+    .novel-capture-area pre,
+    .novel-capture-area ul,
+    .novel-capture-area ol,
+    .novel-capture-area table {
       word-break: keep-all;
       overflow-wrap: break-word;
-      margin-bottom: 0; 
-      opacity: 1 !important;        
+      margin-bottom: 1em; 
       color: var(--novel-text);
     }
 
-    /* [추가] 마크다운 구분선 스타일 정의 */
+    .novel-capture-area p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* 헤더 스타일링 */
+    .novel-capture-area h1, .novel-capture-area h2, .novel-capture-area h3,
+    .novel-capture-area h4, .novel-capture-area h5, .novel-capture-area h6 {
+      color: var(--novel-bold);
+      margin-top: 0.8em;
+      margin-bottom: 0.4em;
+      line-height: 1.3;
+    }
+    .novel-capture-area h1 { font-size: 1.8em; border-bottom: 1px solid var(--novel-bar-color); padding-bottom: 0.3em; }
+    .novel-capture-area h2 { font-size: 1.5em; border-bottom: 1px solid var(--novel-bar-color); padding-bottom: 0.3em; }
+    .novel-capture-area h3 { font-size: 1.3em; }
+    .novel-capture-area h4 { font-size: 1.15em; }
+    .novel-capture-area h5 { font-size: 1em; }
+    .novel-capture-area h6 { font-size: 0.85em; opacity: 0.8; }
+
+    /* 구분선 */
     .novel-capture-area hr {
       border: none;
       border-top: 1px solid var(--novel-bar-color);
       margin: 1.5em 0;
-      opacity: 1 !important;
     }
 
-    /* 마크다운 규칙 스타일 정의 */
+    /* 마크다운 기본 인라인 서식 정의 */
     .novel-capture-area strong { 
       color: var(--novel-bold); 
       font-weight: 700; 
-      opacity: 1 !important;
     }
     
+    .novel-capture-area em {
+      font-style: italic;
+    }
+
+    .novel-capture-area del {
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    .novel-capture-area u {
+      text-decoration: underline;
+    }
+
     .novel-capture-area .low-opacity { 
       color: var(--novel-text-low) !important;
     }
     
+    /* 인용구 스타일 (중첩 인용구 지원) */
     .novel-capture-area blockquote { 
       border-left: 4px solid var(--novel-bar-color); 
       padding-left: 15px; 
-      font-style: normal !important; 
+      margin-left: 0;
+      margin-right: 0;
+      opacity: 0.9;
     }
     
-    /* 멀티라인 코드블록 서식 */
+    /* 리스트 스타일 */
+    .novel-capture-area ul, .novel-capture-area ol {
+      padding-left: 1.5em;
+    }
+    .novel-capture-area li {
+      margin-bottom: 0.3em;
+    }
+    .novel-capture-area input[type="checkbox"] {
+      margin-right: 0.5em;
+    }
+
+    /* 링크 및 이미지 */
+    .novel-capture-area a {
+      color: #64b5f6;
+      text-decoration: underline;
+    }
+    [data-theme="light"] .novel-capture-area a {
+      color: #1976d2;
+    }
+    .novel-capture-area img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      margin: 0.5em 0;
+    }
+
+    /* 표(Table) 스타일 */
+    .novel-capture-area table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+      font-size: 0.9em;
+    }
+    .novel-capture-area th, .novel-capture-area td {
+      border: 1px solid var(--novel-bar-color);
+      padding: 8px 12px;
+    }
+    .novel-capture-area th {
+      background-color: var(--novel-code-bg);
+      font-weight: bold;
+    }
+
+    /* 코드블록 서식 */
     .novel-capture-area pre {
       background-color: var(--novel-code-bg);
-      padding: 10px 15px;
+      padding: 12px 15px;
       border-radius: 6px;
-      white-space: pre-wrap; 
-      font-family: monospace;
+      overflow-x: auto;
+      font-family: Consolas, Monaco, 'Andale Mono', monospace;
     }
     .novel-capture-area code { 
-      font-family: monospace; 
-      background: rgba(128,128,128,0.2); 
+      font-family: Consolas, Monaco, 'Andale Mono', monospace; 
+      background: var(--novel-code-bg); 
       padding: 2px 6px; 
       border-radius: 4px; 
       font-size: 0.9em; 
@@ -130,6 +211,7 @@
       background: none;
       padding: 0;
       font-size: 0.9em;
+      display: block;
     }
     
     /* 하이라이트 스타일 */
@@ -145,9 +227,6 @@
     .novel-capture-area .highlight:hover {
       opacity: 0.7 !important;
     }
-    
-    /* 빈 줄 유지 */
-    .novel-capture-area .empty-line { height: 1.85em; margin-bottom: 0; }
   </style>
 </head>
 <body>
@@ -173,8 +252,8 @@
     </div>
 
     <div>
-      <label style="margin-bottom: 5px;">텍스트 파일 가져오기 (.txt / .json)</label>
-      <input type="file" id="fileInput" accept=".txt,.json" onchange="handleFileUpload()">
+      <label style="margin-bottom: 5px;">텍스트 파일 가져오기 (.txt / .json / .md)</label>
+      <input type="file" id="fileInput" accept=".txt,.json,.md" onchange="handleFileUpload()">
     </div>
 
     <div>
@@ -189,14 +268,13 @@
       </div>
       
       <div class="guide-box" style="margin-bottom: 8px;">
-        • <b>**텍스트**</b> : 강조 타이틀 (볼드)<br>
-        • <b>*텍스트*</b> : 차분하게 톤 다운된 서체<br>
+        • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭*</b>, <b>~~취소선~~</b>, <b><u>밑줄</u></b><br>
         • <b>==텍스트==</b> : 글자색 노란색 변경 (드래그 추가 / 클릭 삭제)<br>
-        • <b>&gt; 텍스트</b> : 인용구 레이아웃<br>
-        • <b>---</b> : 장면 전환용 구분선<br>
-        • <b>```멀티라인 코드```</b> : 코드블록 레이아웃
+        • <b>&gt; 인용구</b>, <b>- 목록</b>, <b>1. 순서목록</b>, <b>- [x] 체크리스트</b><br>
+        • <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
+        • <b>`인라인코드`</b> 및 <b>```코드블록```</b> 지원
       </div>
-      <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
+      <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설/마크다운 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
     </div>
 
     <button class="btn btn-success" onclick="downloadPNG()">고화질 PNG 다운로드</button>
@@ -210,6 +288,12 @@
   <button id="floatingHighlightBtn" style="position: absolute; display: none; background: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 9999;">✍️ 하이라이트 추가</button>
 
   <script>
+    // Marked.js 설정 (줄바꿈 자동 적용 & HTML 태그 허용)
+    marked.setOptions({
+      breaks: true,
+      gfm: true
+    });
+
     window.onload = function() {
       document.getElementById('replaceRules').value = "";
       document.getElementById('inputText').value = "";
@@ -256,6 +340,7 @@
       const replaceRules = document.getElementById('replaceRules').value;
       const novelView = document.getElementById('novelView');
 
+      // 1. 단어 치환 규칙 적용
       const rules = replaceRules.split('\n');
       rules.forEach(rule => {
         if (rule.includes('->')) {
@@ -268,67 +353,13 @@
         }
       });
 
-      const lines = rawText.split('\n');
-      let resultHtml = '';
-      let inCodeBlock = false;
+      // 2. 커스텀 마크다운 문법 프리프로세싱 (하이라이트: ==text==)
+      rawText = rawText.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
 
-      lines.forEach(line => {
-        // 1. 멀티라인 코드블록 검사
-        if (line.trim().startsWith('```')) {
-          if (line.trim().endsWith('```') && line.trim().length > 6) {
-            let codeContent = line.trim().slice(3, -3);
-            let processedCode = codeContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            resultHtml += `<p><code>${processedCode}</code></p>`;
-            return;
-          }
-          if (!inCodeBlock) {
-            inCodeBlock = true;
-            resultHtml += '<pre><code>';
-          } else {
-            inCodeBlock = false;
-            resultHtml += '</code></pre>';
-          }
-          return;
-        }
+      // 3. Marked.js를 사용하여 풀 마크다운 렌더링
+      let parsedHtml = marked.parse(rawText);
 
-        if (inCodeBlock) {
-          let processedCode = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-          resultHtml += processedCode + '\n';
-          return;
-        }
-
-        // [추가] 2. 마크다운 구분선(---) 검사
-        if (line.trim() === '---') {
-          resultHtml += '<hr>';
-          return;
-        }
-
-        // 3. 인용구(>) 검사
-        let isBlockquote = false;
-        let currentLine = line;
-        if (currentLine.trim().startsWith('>')) {
-          isBlockquote = true;
-          currentLine = currentLine.replace(/^\s*>\s?/, ''); 
-        }
-
-        let processedLine = currentLine.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-        // 인라인 기호 치환
-        processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        processedLine = processedLine.replace(/\*(.*?)\*/g, '<span class="low-opacity">$1</span>');
-        processedLine = processedLine.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
-        processedLine = processedLine.replace(/```(.*?)```/g, '<code>$1</code>');
-
-        if (isBlockquote) {
-          resultHtml += `<blockquote>${processedLine}</blockquote>`;
-        } else if (line.trim() === '') {
-          resultHtml += `<p class="empty-line">&nbsp;</p>`; 
-        } else {
-          resultHtml += `<p>${processedLine}</p>`;
-        }
-      });
-
-      novelView.innerHTML = resultHtml;
+      novelView.innerHTML = parsedHtml;
     }
 
     // 캡처 다운로드 함수
@@ -354,6 +385,7 @@
 
     // 드래그 하이라이트 로직
     const floatBtn = document.getElementById('floatingHighlightBtn');
+    const novelView = document.getElementById('novelView');
 
     novelView.addEventListener('mouseup', function(e) {
       setTimeout(() => {
