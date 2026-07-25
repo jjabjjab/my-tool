@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   
   <style>
-    /* 기본 레이아웃 변수 설정 (라이트/다크 모드대응) */
+    /* 기본 레이아웃 변수 설정 (라이트/다크 모드 대응) */
     :root {
       --bg-control: #f8f9fa;
       --text-control: #333;
@@ -24,7 +24,7 @@
       --novel-code-bg: rgba(255, 255, 255, 0.12); 
       
       --novel-bar-color: rgba(255, 255, 255, 0.25); 
-      --novel-text-low: rgba(255, 255, 255, 0.55);   
+      --novel-text-low: rgba(255, 255, 255, 0.55);    
     }
 
     [data-theme="light"] {
@@ -34,8 +34,8 @@
       --novel-highlight-text: #b45309; 
       --novel-code-bg: rgba(0, 0, 0, 0.06); 
       
-      --novel-bar-color: rgba(0, 0, 0, 0.18);       
-      --novel-text-low: rgba(0, 0, 0, 0.48);         
+      --novel-bar-color: rgba(0, 0, 0, 0.18);        
+      --novel-text-low: rgba(0, 0, 0, 0.48);          
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -66,7 +66,7 @@
     /* 프리뷰 영역 스타일 (우측) */
     .preview-container { flex: 1; display: flex; justify-content: center; align-items: start; padding: 20px; overflow-y: auto; background: #555; position: relative; }
     
-    /* 실제 웹소설 캡처 구역 */
+    /* 실제 웹소설 캡처 구역 - 모든 요소의 행간 및 마진 통일 */
     .novel-capture-area {
       width: 500px; 
       min-height: 700px;
@@ -79,43 +79,47 @@
       text-align: left; 
     }
 
-    /* 단어 중간 끊김 방지 및 표준 요소 서식 */
+    /* 모든 블록 요소의 여백(Margin/Padding)을 0으로 만들어 일정한 행간 유지 */
     .novel-capture-area p, 
     .novel-capture-area blockquote, 
     .novel-capture-area pre,
     .novel-capture-area ul,
     .novel-capture-area ol,
-    .novel-capture-area table {
+    .novel-capture-area table,
+    .novel-capture-area h1, 
+    .novel-capture-area h2, 
+    .novel-capture-area h3,
+    .novel-capture-area h4, 
+    .novel-capture-area h5, 
+    .novel-capture-area h6 {
       word-break: keep-all;
       overflow-wrap: break-word;
-      margin-bottom: 1em; 
+      margin: 0 !important;
+      padding: 0;
+      line-height: 1.85 !important;
       color: var(--novel-text);
     }
 
-    .novel-capture-area p:last-child {
-      margin-bottom: 0;
+    /* 빈 문단이 쪼그라들지 않고 정확히 1행의 높이를 갖도록 설정 */
+    .novel-capture-area p:empty::before {
+      content: "\00a0";
     }
 
-    /* 헤더 스타일링 */
+    /* 헤더 스타일링 (여백 제거 및 폰트 크기 조정) */
     .novel-capture-area h1, .novel-capture-area h2, .novel-capture-area h3,
     .novel-capture-area h4, .novel-capture-area h5, .novel-capture-area h6 {
       color: var(--novel-bold);
-      margin-top: 0.8em;
-      margin-bottom: 0.4em;
-      line-height: 1.3;
     }
-    .novel-capture-area h1 { font-size: 1.8em; border-bottom: 1px solid var(--novel-bar-color); padding-bottom: 0.3em; }
-    .novel-capture-area h2 { font-size: 1.5em; border-bottom: 1px solid var(--novel-bar-color); padding-bottom: 0.3em; }
-    .novel-capture-area h3 { font-size: 1.3em; }
-    .novel-capture-area h4 { font-size: 1.15em; }
-    .novel-capture-area h5 { font-size: 1em; }
-    .novel-capture-area h6 { font-size: 0.85em; opacity: 0.8; }
+    .novel-capture-area h1 { font-size: 1.5em; }
+    .novel-capture-area h2 { font-size: 1.3em; }
+    .novel-capture-area h3 { font-size: 1.15em; }
+    .novel-capture-area h4, .novel-capture-area h5, .novel-capture-area h6 { font-size: 1em; }
 
     /* 구분선 */
     .novel-capture-area hr {
       border: none;
       border-top: 1px solid var(--novel-bar-color);
-      margin: 1.5em 0;
+      margin: 0.925em 0; /* 1행 분량의 정확한 중간 분할 */
     }
 
     /* 마크다운 기본 인라인 서식 정의 */
@@ -141,12 +145,10 @@
       color: var(--novel-text-low) !important;
     }
     
-    /* 인용구 스타일 (중첩 인용구 지원) */
+    /* 인용구 스타일 */
     .novel-capture-area blockquote { 
-      border-left: 4px solid var(--novel-bar-color); 
-      padding-left: 15px; 
-      margin-left: 0;
-      margin-right: 0;
+      border-left: 3px solid var(--novel-bar-color); 
+      padding-left: 12px; 
       opacity: 0.9;
     }
     
@@ -155,7 +157,8 @@
       padding-left: 1.5em;
     }
     .novel-capture-area li {
-      margin-bottom: 0.3em;
+      margin: 0;
+      line-height: 1.85;
     }
     .novel-capture-area input[type="checkbox"] {
       margin-right: 0.5em;
@@ -173,19 +176,18 @@
       max-width: 100%;
       height: auto;
       border-radius: 4px;
-      margin: 0.5em 0;
+      display: block;
     }
 
     /* 표(Table) 스타일 */
     .novel-capture-area table {
       width: 100%;
       border-collapse: collapse;
-      margin: 1em 0;
       font-size: 0.9em;
     }
     .novel-capture-area th, .novel-capture-area td {
       border: 1px solid var(--novel-bar-color);
-      padding: 8px 12px;
+      padding: 4px 8px;
     }
     .novel-capture-area th {
       background-color: var(--novel-code-bg);
@@ -195,7 +197,7 @@
     /* 코드블록 서식 */
     .novel-capture-area pre {
       background-color: var(--novel-code-bg);
-      padding: 12px 15px;
+      padding: 8px 12px;
       border-radius: 6px;
       overflow-x: auto;
       font-family: Consolas, Monaco, 'Andale Mono', monospace;
