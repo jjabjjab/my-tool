@@ -70,6 +70,19 @@
     .flex-row { display: flex; gap: 10px; align-items: center; }
     .guide-box { background: #e2e3e5; padding: 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; color: #383d41; }
 
+    /* 프리셋 색상 버튼 스타일 */
+    .color-preset-btn {
+      flex: 1;
+      height: 26px;
+      border: 1px solid rgba(0,0,0,0.15);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .color-preset-btn:hover {
+      transform: scale(1.08);
+    }
+
     /* 프리뷰 영역 스타일 (우측) */
     .preview-container { flex: 1; display: flex; justify-content: center; align-items: start; padding: 20px; overflow-y: auto; background: #555; position: relative; }
     
@@ -239,7 +252,7 @@
       padding: 0;
       border-radius: 0;
       cursor: pointer; 
-      transition: opacity 0.15s;
+      transition: opacity 0.15s, color 0.15s;
     }
     .novel-capture-area .highlight:hover {
       opacity: 0.7 !important;
@@ -257,6 +270,22 @@
       <div class="flex-row">
         <button class="btn btn-primary" onclick="setTheme('dark')">다크 모드</button>
         <button class="btn btn-secondary" onclick="setTheme('light')">라이트 모드</button>
+      </div>
+    </div>
+
+    <!-- 하이라이트 글자색 조절 섹션 추가 -->
+    <div>
+      <div class="flex-row" style="justify-content: space-between; margin-bottom: 6px;">
+        <label>하이라이트(==텍스트==) 글자색 선택</label>
+        <input type="color" id="highlightColorPicker" value="#ffeb3b" oninput="changeHighlightColor(this.value)" style="width: 32px; height: 26px; border: none; background: transparent; cursor: pointer;">
+      </div>
+      <div class="flex-row" style="gap: 5px;">
+        <button class="color-preset-btn" style="background: #ffeb3b;" onclick="changeHighlightColor('#ffeb3b')" title="노랑"></button>
+        <button class="color-preset-btn" style="background: #00f2fe;" onclick="changeHighlightColor('#00f2fe')" title="민트"></button>
+        <button class="color-preset-btn" style="background: #ff758c;" onclick="changeHighlightColor('#ff758c')" title="핑크"></button>
+        <button class="color-preset-btn" style="background: #ff9f43;" onclick="changeHighlightColor('#ff9f43')" title="주황"></button>
+        <button class="color-preset-btn" style="background: #a8ff78;" onclick="changeHighlightColor('#a8ff78')" title="연두"></button>
+        <button class="color-preset-btn" style="background: #b45309;" onclick="changeHighlightColor('#b45309')" title="갈색"></button>
       </div>
     </div>
 
@@ -316,7 +345,7 @@
       
       <div class="guide-box" style="margin-bottom: 8px;">
         • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭(색상변경)*</b>, <b>~~취소선~~</b>, <b><u>밑줄</u></b><br>
-        • <b>==텍스트==</b> : 글자색 노란색 변경 (드래그 추가 / 클릭 삭제)<br>
+        • <b>==텍스트==</b> : 하이라이트 글자색 변경 (드래그 추가 / 클릭 삭제)<br>
         • <b>&gt; 인용구</b>, <b>- 목록</b>, <b>1. 순서목록</b>, <b>- [x] 체크리스트</b><br>
         • <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
         • <b>`인라인코드`</b> 및 <b>```코드블록```</b> 지원
@@ -335,12 +364,6 @@
   <button id="floatingHighlightBtn" style="position: absolute; display: none; background: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 9999;">✍️ 하이라이트 추가</button>
 
   <script>
-    // Marked.js 기본 설정 (줄바꿈 자동 적용 & HTML 태그 허용)
-    marked.setOptions({
-      breaks: true,
-      gfm: true
-    });
-
     window.onload = function() {
       document.getElementById('replaceRules').value = "";
       document.getElementById('inputText').value = "";
@@ -350,6 +373,16 @@
     function setTheme(theme) {
       const novelView = document.getElementById('novelView');
       novelView.setAttribute('data-theme', theme);
+      
+      // 테마 변경 시 기본 하이라이트 색상 자동 세팅
+      const defaultColor = theme === 'dark' ? '#ffeb3b' : '#b45309';
+      changeHighlightColor(defaultColor);
+    }
+
+    // 하이라이트 색상 변경 함수
+    function changeHighlightColor(color) {
+      document.getElementById('novelView').style.setProperty('--novel-highlight-text', color);
+      document.getElementById('highlightColorPicker').value = color;
     }
 
     // 행간 설정 함수
@@ -431,7 +464,7 @@
           continue;
         }
 
-        // 코드블록 밖의 빈 줄 처리
+        // 코드블록 밖의 빈 줄 처리 -> empty-line 클래스가 지정된 태그 생성
         if (line.trim() === '') {
           result.push('<p class="empty-line">&nbsp;</p>');
         } else {
@@ -443,50 +476,48 @@
     }
 
     // 핵심 렌더링 함수
-    // Marked.js 옵션 설정 (안전하게 동적 적용)
-if (typeof marked !== 'undefined') {
-  if (typeof marked.use === 'function') {
-    marked.use({ breaks: true, gfm: true });
-  } else if (typeof marked.setOptions === 'function') {
-    marked.setOptions({ breaks: true, gfm: true });
-  }
-}
+    function renderNovel() {
+      let rawText = document.getElementById('inputText').value;
+      const replaceRules = document.getElementById('replaceRules').value;
+      const novelView = document.getElementById('novelView');
 
-function renderNovel() {
-  let rawText = document.getElementById('inputText').value;
-  const replaceRules = document.getElementById('replaceRules').value;
-  const novelView = document.getElementById('novelView');
-
-  // 라이브러리 로드 실패 시 안내
-  if (typeof marked === 'undefined') {
-    novelView.innerHTML = '<p style="color:#ff4d4d; font-weight:bold;">⚠️ 마크다운 라이브러리를 불러오지 못했습니다. 인터넷 연결 상태를 확인해 주세요.</p>';
-    return;
-  }
-
-  // 1. 단어 치환 규칙 적용
-  const rules = replaceRules.split('\n');
-  rules.forEach(rule => {
-    if (rule.includes('->')) {
-      const [target, replacement] = rule.split('->');
-      if (target.trim()) {
-        const safeTarget = target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); 
-        const regex = new RegExp(safeTarget, 'g');
-        rawText = rawText.replace(regex, replacement);
+      // 라이브러리 로드 실패 시 안내
+      if (typeof marked === 'undefined') {
+        novelView.innerHTML = '<p style="color:#ff4d4d; font-weight:bold;">⚠️ 마크다운 라이브러리를 불러오지 못했습니다. 인터넷 연결 상태를 확인해 주세요.</p>';
+        return;
       }
+
+      // Marked.js 옵션 안전 설정
+      if (typeof marked.use === 'function') {
+        marked.use({ breaks: true, gfm: true });
+      } else if (typeof marked.setOptions === 'function') {
+        marked.setOptions({ breaks: true, gfm: true });
+      }
+
+      // 1. 단어 치환 규칙 적용
+      const rules = replaceRules.split('\n');
+      rules.forEach(rule => {
+        if (rule.includes('->')) {
+          const [target, replacement] = rule.split('->');
+          if (target.trim()) {
+            const safeTarget = target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); 
+            const regex = new RegExp(safeTarget, 'g');
+            rawText = rawText.replace(regex, replacement);
+          }
+        }
+      });
+
+      // 2. 빈 줄(엔터) 보존 처리
+      rawText = preprocessBlankLines(rawText);
+
+      // 3. 하이라이트 문법 미리 변환 (==text== -> <span class="highlight">text</span>)
+      rawText = rawText.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
+
+      // 4. 순수 마크다운 파싱 수행
+      let parsedHtml = marked.parse ? marked.parse(rawText) : marked(rawText);
+
+      novelView.innerHTML = parsedHtml;
     }
-  });
-
-  // 2. 하이라이트 문법 미리 변환 (==text== -> <span class="highlight">text</span>)
-  rawText = rawText.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
-
-  // 3. 순수 마크다운 파싱을 먼저 수행
-  let parsedHtml = marked.parse ? marked.parse(rawText) : marked(rawText);
-
-  // 4. 파싱 후 생성된 빈 문단(<p></p>) 높이 보장 처리
-  parsedHtml = parsedHtml.replace(/<p>\s*<\/p>/g, '<p class="empty-line">&nbsp;</p>');
-
-  novelView.innerHTML = parsedHtml;
-}
 
     // 캡처 다운로드 함수
     function downloadPNG() {
