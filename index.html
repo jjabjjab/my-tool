@@ -102,13 +102,23 @@
       text-align: left; 
     }
 
-    /* 문단 간격 및 행간 설정 */
+    /* 문단 간격 및 행간 설정 (엔터 2번 시 1줄 빈 간격 형성) */
     .novel-capture-area p {
       word-break: keep-all;
       overflow-wrap: break-word;
-      margin: 0; 
+      margin: 0 0 1em 0; 
       color: var(--novel-text);
       line-height: var(--novel-line-height);
+    }
+
+    .novel-capture-area p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* 3번 이상 엔터 입력 시 사용되는 빈 줄 높이 */
+    .novel-capture-area p.empty-line {
+      margin: 0 0 1em 0;
+      min-height: calc(1em * var(--novel-line-height));
     }
 
     /* 헤더 스타일링 */
@@ -130,8 +140,7 @@
     .novel-capture-area ul,
     .novel-capture-area ol,
     .novel-capture-area table,
-    .novel-capture-area pre,
-    .novel-capture-area blockquote {
+    .novel-capture-area pre {
       margin-top: 0.6em;
       margin-bottom: 0.8em;
     }
@@ -168,13 +177,18 @@
       color: var(--novel-text-low) !important;
     }
     
-    /* 인용구 스타일 */
+    /* 인용구(blockquote) 스타일 */
     .novel-capture-area blockquote { 
       border-left: 4px solid var(--novel-bar-color); 
       padding-left: 15px; 
-      margin-left: 0;
-      margin-right: 0;
+      margin: 0.8em 0 1em 0;
       opacity: 0.9;
+    }
+    .novel-capture-area blockquote p {
+      margin-bottom: 0.5em;
+    }
+    .novel-capture-area blockquote p:last-child {
+      margin-bottom: 0;
     }
     
     /* 리스트 스타일 */
@@ -440,34 +454,22 @@
       reader.readAsText(file, 'UTF-8');
     }
 
-    // 빈 줄 전처리 함수 (마크다운 파서를 방해하지 않는 텍스트 키워드 삽입)
+    // 3번 이상 연속 엔터(빈 줄) 전처리 함수
     function preprocessBlankLines(rawText) {
-      const lines = rawText.split('\n');
-      let result = [];
-      let inCodeBlock = false;
-
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
-
-        if (line.trim().startsWith('```')) {
-          inCodeBlock = !inCodeBlock;
-          result.push(line);
-          continue;
-        }
-
-        if (inCodeBlock) {
-          result.push(line);
-          continue;
-        }
-
-        if (line.trim() === '') {
-          result.push('[[EMPTY_LINE]]');
-        } else {
-          result.push(line);
-        }
-      }
-
-      return result.join('\n');
+      const parts = rawText.split(/(```[\s\S]*?```)/g);
+      return parts.map((part, index) => {
+        if (index % 2 === 1) return part; // 코드블록 내부는 변경하지 않음
+        
+        // 3개 이상의 연달은 엔터(\n{3,})만 빈 문단 태그로 변환
+        return part.replace(/\n{3,}/g, (match) => {
+          const count = match.length - 2;
+          let emptyLines = '';
+          for (let i = 0; i < count; i++) {
+            emptyLines += '<p class="empty-line">&nbsp;</p>\n\n';
+          }
+          return '\n\n' + emptyLines;
+        });
+      }).join('');
     }
 
     // 핵심 렌더링 함수
@@ -501,7 +503,7 @@
         }
       });
 
-      // 2. 빈 줄(엔터) 보존 프리프로세싱
+      // 2. 3연속 이상 빈 줄 전처리
       rawText = preprocessBlankLines(rawText);
 
       // 3. 커스텀 하이라이트 문법 미리 변환 (==text== -> <span class="highlight">text</span>)
@@ -509,9 +511,6 @@
 
       // 4. 순수 마크다운 파싱 수행
       let parsedHtml = typeof marked.parse === 'function' ? marked.parse(rawText) : marked(rawText);
-
-      // 5. 빈 줄 키워드를 HTML 공백으로 최종 변환
-      parsedHtml = parsedHtml.replace(/\[\[EMPTY_LINE\]\]/g, '&nbsp;');
 
       novelView.innerHTML = parsedHtml;
     }
