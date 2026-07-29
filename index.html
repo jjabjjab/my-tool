@@ -59,7 +59,7 @@
     .control-panel { width: 400px; padding: 20px; background: var(--bg-control); color: var(--text-control); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
     h2 { font-size: 18px; margin-bottom: 5px; }
     label { font-size: 13px; font-weight: bold; display: block; }
-    textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: none; }
+    textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: vertical; }
     
     input[type="range"] { width: 100%; margin-top: 5px; cursor: pointer; }
 
@@ -73,17 +73,30 @@
     .flex-row { display: flex; gap: 10px; align-items: center; }
     .guide-box { background: #e2e3e5; padding: 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; color: #383d41; }
 
-    /* 프리셋 색상 버튼 스타일 */
-    .color-preset-btn {
+    /* 커스텀 팔레트 색상 피커 스타일 */
+    .color-preset-input {
       flex: 1;
-      height: 26px;
-      border: 1px solid rgba(0,0,0,0.15);
+      height: 28px;
+      border: 1px solid rgba(0,0,0,0.2);
       border-radius: 4px;
       cursor: pointer;
+      padding: 0;
+      background: transparent;
       transition: transform 0.1s;
     }
-    .color-preset-btn:hover {
-      transform: scale(1.08);
+    .color-preset-input:hover {
+      transform: scale(1.05);
+    }
+    .color-preset-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    .color-preset-input::-webkit-color-swatch {
+      border: none;
+      border-radius: 3px;
+    }
+    .color-preset-input::-moz-color-swatch {
+      border: none;
+      border-radius: 3px;
     }
 
     /* 프리뷰 영역 스타일 (우측) */
@@ -102,7 +115,7 @@
       text-align: left; 
     }
 
-    /* 문단 간격 및 행간 설정 (엔터 2번 시 1줄 빈 간격 형성) */
+    /* 문단 간격 및 행간 설정 */
     .novel-capture-area p {
       word-break: keep-all;
       overflow-wrap: break-word;
@@ -284,19 +297,19 @@
       </div>
     </div>
 
-    <!-- 하이라이트 글자색 조절 섹션 -->
+    <!-- 커스텀 하이라이트 팔레트 섹션 -->
     <div>
       <div class="flex-row" style="justify-content: space-between; margin-bottom: 6px;">
-        <label>하이라이트(==텍스트==) 글자색 선택</label>
-        <input type="color" id="highlightColorPicker" value="#ffeb3b" oninput="changeHighlightColor(this.value)" style="width: 32px; height: 26px; border: none; background: transparent; cursor: pointer;">
+        <label>하이라이트(==텍스트==) 팔레트 설정</label>
+        <button type="button" onclick="resetPalette()" style="font-size: 11px; padding: 2px 8px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;">초기화</button>
       </div>
-      <div class="flex-row" style="gap: 5px;">
-        <button class="color-preset-btn" style="background: #ffeb3b;" onclick="changeHighlightColor('#ffeb3b')" title="노랑"></button>
-        <button class="color-preset-btn" style="background: #00f2fe;" onclick="changeHighlightColor('#00f2fe')" title="민트"></button>
-        <button class="color-preset-btn" style="background: #ff758c;" onclick="changeHighlightColor('#ff758c')" title="핑크"></button>
-        <button class="color-preset-btn" style="background: #ff9f43;" onclick="changeHighlightColor('#ff9f43')" title="주황"></button>
-        <button class="color-preset-btn" style="background: #a8ff78;" onclick="changeHighlightColor('#a8ff78')" title="연두"></button>
-        <button class="color-preset-btn" style="background: #b45309;" onclick="changeHighlightColor('#b45309')" title="갈색"></button>
+      <div class="flex-row" style="gap: 5px;" id="paletteContainer">
+        <input type="color" class="color-preset-input" value="#ffeb3b" oninput="selectPaletteColor(this)" title="팔레트 1 (클릭하여 변경)">
+        <input type="color" class="color-preset-input" value="#00f2fe" oninput="selectPaletteColor(this)" title="팔레트 2 (클릭하여 변경)">
+        <input type="color" class="color-preset-input" value="#ff758c" oninput="selectPaletteColor(this)" title="팔레트 3 (클릭하여 변경)">
+        <input type="color" class="color-preset-input" value="#ff9f43" oninput="selectPaletteColor(this)" title="팔레트 4 (클릭하여 변경)">
+        <input type="color" class="color-preset-input" value="#a8ff78" oninput="selectPaletteColor(this)" title="팔레트 5 (클릭하여 변경)">
+        <input type="color" class="color-preset-input" value="#b45309" oninput="selectPaletteColor(this)" title="팔레트 6 (클릭하여 변경)">
       </div>
     </div>
 
@@ -348,7 +361,8 @@
       <textarea id="replaceRules" style="height: 60px;" placeholder="예시)&#10;이름->■■"></textarea>
     </div>
 
-    <div style="flex: 1; display: flex; flex-direction: column;">
+    <!-- 소설 본문 입력 구역 (최소 높이를 화면 절반 50vh로 확대) -->
+    <div style="display: flex; flex-direction: column; flex: 1;">
       <div class="flex-row" style="justify-content: space-between; margin-bottom: 5px; align-items: center;">
         <label>소설 본문 입력</label>
         <button class="btn" style="width: auto; padding: 4px 10px; font-size: 11px; background: #dc3545; color: white;" onclick="clearAllHighlights()">하이라이트 전체 삭제</button>
@@ -361,7 +375,9 @@
         • <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
         • <b>`인라인코드`</b> 및 <b>```코드블록```</b> 지원
       </div>
-      <textarea id="inputText" style="flex: 1;" placeholder="여기에 소설/마크다운 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
+      
+      <!-- 입력 상자 높이 50vh 지정 -->
+      <textarea id="inputText" style="min-height: 50vh; flex: 1;" placeholder="여기에 소설/마크다운 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
     </div>
 
     <button class="btn btn-success" onclick="downloadPNG()">고화질 PNG 다운로드</button>
@@ -385,15 +401,31 @@
       const novelView = document.getElementById('novelView');
       novelView.setAttribute('data-theme', theme);
       
-      // 테마 변경 시 기본 하이라이트 색상 세팅
-      const defaultColor = theme === 'dark' ? '#ffeb3b' : '#b45309';
-      changeHighlightColor(defaultColor);
+      // 테마 변경 시 기본 첫 번째 팔레트 색상으로 세팅
+      const firstPalette = document.querySelector('#paletteContainer .color-preset-input');
+      if (firstPalette) {
+        changeHighlightColor(firstPalette.value);
+      }
     }
 
     // 하이라이트 색상 변경 함수
     function changeHighlightColor(color) {
       document.getElementById('novelView').style.setProperty('--novel-highlight-text', color);
-      document.getElementById('highlightColorPicker').value = color;
+    }
+
+    // 팔레트 칩 클릭/변경 시 선택한 색상 적용
+    function selectPaletteColor(inputElem) {
+      changeHighlightColor(inputElem.value);
+    }
+
+    // 팔레트 기본값 초기화
+    function resetPalette() {
+      const defaultColors = ['#ffeb3b', '#00f2fe', '#ff758c', '#ff9f43', '#a8ff78', '#b45309'];
+      const inputs = document.querySelectorAll('#paletteContainer .color-preset-input');
+      inputs.forEach((input, idx) => {
+        input.value = defaultColors[idx];
+      });
+      changeHighlightColor(defaultColors[0]);
     }
 
     // 행간 설정 함수
@@ -460,7 +492,6 @@
       return parts.map((part, index) => {
         if (index % 2 === 1) return part; // 코드블록 내부는 변경하지 않음
         
-        // 3개 이상의 연달은 엔터(\n{3,})만 빈 문단 태그로 변환
         return part.replace(/\n{3,}/g, (match) => {
           const count = match.length - 2;
           let emptyLines = '';
