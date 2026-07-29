@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>웹소설 스타일 캡처 생성기</title>
   <!-- 고화질 이미지 저장을 위한 라이브러리 로드 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js)"></script>
   <!-- 완전한 마크다운 파싱을 위한 Marked.js 라이브러리 로드 -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="[https://cdn.jsdelivr.net/npm/marked/marked.min.js](https://cdn.jsdelivr.net/npm/marked/marked.min.js)"></script>
   
   <style>
     /* 기본 레이아웃 변수 설정 (라이트/다크 모드대응) */
@@ -17,17 +17,19 @@
       --border-color: #ced4da;
       
       /* 캡처 본문 스타일 (기본 다크모드) */
-      --novel-bg: #000000;
-      --novel-text: #ffffff;        
-      --novel-bold: #ffffff;        
+      --novel-bg: #141413;
+      --novel-text: #fafafa;        
+      --novel-bold: #fafafa;        
       --novel-highlight-text: #ffeb3b; 
       --novel-code-bg: rgba(255, 255, 255, 0.12); 
       
       --novel-bar-color: rgba(255, 255, 255, 0.25); 
-      --novel-text-low: rgba(255, 255, 255, 0.55);   
+      --novel-text-low: rgba(255, 255, 255, 0.55);    
       
-      /* 기본 행간 설정 */
+      /* 기본 행간 및 여백 설정 */
       --novel-line-height: 1.85;
+      --novel-padding-v: 40px;
+      --novel-padding-h: 40px;
     }
 
     [data-theme="light"] {
@@ -37,7 +39,7 @@
       --novel-highlight-text: #b45309; 
       --novel-code-bg: rgba(0, 0, 0, 0.06); 
       
-      --novel-bar-color: rgba(0, 0, 0, 0.18);       
+      --novel-bar-color: rgba(0, 0, 0, 0.18);        
       --novel-text-low: rgba(0, 0, 0, 0.48);         
     }
 
@@ -76,7 +78,7 @@
       width: 500px; 
       min-height: 700px;
       background-color: var(--novel-bg);
-      padding: 40px; 
+      padding: var(--novel-padding-v) var(--novel-padding-h); 
       color: var(--novel-text);
       font-size: 17px;
       line-height: var(--novel-line-height); 
@@ -137,8 +139,10 @@
       font-weight: 700; 
     }
     
+    /* 이탤릭(*text*) 서식 변경: 기울임 제거 & 색상 #85837d 변경 */
     .novel-capture-area em {
-      font-style: italic;
+      font-style: normal;
+      color: #85837d;
     }
 
     .novel-capture-area del {
@@ -256,7 +260,7 @@
       </div>
     </div>
 
-    <!-- 행간 조절 버튼 그룹 추가 -->
+    <!-- 행간 조절 버튼 그룹 -->
     <div>
       <label style="margin-bottom: 5px;">행간(줄 간격) 조절</label>
       <div class="flex-row" id="lhGroup">
@@ -267,12 +271,31 @@
       </div>
     </div>
 
+    <!-- 캡처 영역 폭(너비) 조절 (400px ~ 1200px) -->
     <div>
       <div class="flex-row" style="justify-content: space-between;">
         <label>캡처 영역 폭(너비) 조절</label>
         <span id="widthValue" style="font-size: 13px; font-weight: bold; color: #007bff;">500px</span>
       </div>
-      <input type="range" id="widthSlider" min="400" max="800" step="10" value="500" oninput="changeWidth(this.value)">
+      <input type="range" id="widthSlider" min="400" max="1200" step="10" value="500" oninput="changeWidth(this.value)">
+    </div>
+
+    <!-- 상하 여백 조절 -->
+    <div>
+      <div class="flex-row" style="justify-content: space-between;">
+        <label>상하 여백 조절</label>
+        <span id="paddingVValue" style="font-size: 13px; font-weight: bold; color: #007bff;">40px</span>
+      </div>
+      <input type="range" id="paddingVSlider" min="0" max="100" step="5" value="40" oninput="changePaddingV(this.value)">
+    </div>
+
+    <!-- 좌우 여백 조절 -->
+    <div>
+      <div class="flex-row" style="justify-content: space-between;">
+        <label>좌우 여백 조절</label>
+        <span id="paddingHValue" style="font-size: 13px; font-weight: bold; color: #007bff;">40px</span>
+      </div>
+      <input type="range" id="paddingHSlider" min="0" max="100" step="5" value="40" oninput="changePaddingH(this.value)">
     </div>
 
     <div>
@@ -292,7 +315,7 @@
       </div>
       
       <div class="guide-box" style="margin-bottom: 8px;">
-        • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭*</b>, <b>~~취소선~~</b>, <b><u>밑줄</u></b><br>
+        • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭(색상변경)*</b>, <b>~~취소선~~</b>, <b><u>밑줄</u></b><br>
         • <b>==텍스트==</b> : 글자색 노란색 변경 (드래그 추가 / 클릭 삭제)<br>
         • <b>&gt; 인용구</b>, <b>- 목록</b>, <b>1. 순서목록</b>, <b>- [x] 체크리스트</b><br>
         • <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
@@ -345,9 +368,22 @@
       }
     }
 
+    // 너비 조절 함수 (400 ~ 1200px)
     function changeWidth(width) {
       document.getElementById('novelView').style.width = width + 'px';
       document.getElementById('widthValue').innerText = width + 'px';
+    }
+
+    // 상하 여백 조절 함수
+    function changePaddingV(val) {
+      document.getElementById('novelView').style.setProperty('--novel-padding-v', val + 'px');
+      document.getElementById('paddingVValue').innerText = val + 'px';
+    }
+
+    // 좌우 여백 조절 함수
+    function changePaddingH(val) {
+      document.getElementById('novelView').style.setProperty('--novel-padding-h', val + 'px');
+      document.getElementById('paddingHValue').innerText = val + 'px';
     }
 
     // 파일 업로드 핸들러
