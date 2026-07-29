@@ -82,6 +82,7 @@
       cursor: pointer;
       transition: transform 0.1s, outline 0.1s;
       position: relative;
+      user-select: none;
     }
     .palette-chip:hover {
       transform: scale(1.05);
@@ -408,7 +409,7 @@
       localStorage.setItem('webnovel_palette_colors', JSON.stringify(currentPalette));
     }
 
-    // 팔레트 UI 생성 (클릭/더블클릭 동작 분리)
+    // 팔레트 UI 생성 (클릭/더블클릭 간섭 방지 적용)
     function renderPaletteUI() {
       const container = document.getElementById('paletteContainer');
       container.innerHTML = '';
@@ -419,11 +420,15 @@
         chip.style.backgroundColor = color;
         chip.title = `팔레트 ${idx + 1} (클릭: 선택 / 더블클릭: 색상변경)`;
 
-        // 더블클릭 시 사용할 숨겨진 컬러 피커
+        // 숨겨진 컬러 피커 (opacity: 0 방식으로 브라우저 접근 허용)
         const hiddenPicker = document.createElement('input');
         hiddenPicker.type = 'color';
         hiddenPicker.value = color;
-        hiddenPicker.style.display = 'none';
+        hiddenPicker.style.position = 'absolute';
+        hiddenPicker.style.opacity = '0';
+        hiddenPicker.style.width = '1px';
+        hiddenPicker.style.height = '1px';
+        hiddenPicker.style.pointerEvents = 'none';
 
         hiddenPicker.addEventListener('change', (e) => {
           updatePaletteColor(idx, e.target.value);
@@ -431,15 +436,26 @@
 
         chip.appendChild(hiddenPicker);
 
-        // 단일 클릭: 색상 선택
-        chip.addEventListener('click', () => {
-          selectPaletteColor(idx);
+        let clickTimer = null;
+
+        // 클릭: 하이라이트 색상 선택 (200ms 지연으로 더블클릭 중복 실행 방지)
+        chip.addEventListener('click', (e) => {
+          if (clickTimer) clearTimeout(clickTimer);
+          clickTimer = setTimeout(() => {
+            selectPaletteColor(idx);
+          }, 200);
         });
 
-        // 더블 클릭: 컬러 피커 열기
+        // 더블클릭: 최신 showPicker API로 컬러 피커 열기
         chip.addEventListener('dblclick', (e) => {
+          if (clickTimer) clearTimeout(clickTimer);
           e.stopPropagation();
-          hiddenPicker.click();
+          
+          if (typeof hiddenPicker.showPicker === 'function') {
+            hiddenPicker.showPicker();
+          } else {
+            hiddenPicker.click();
+          }
         });
 
         container.appendChild(chip);
