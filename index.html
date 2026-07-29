@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>웹소설 스타일 캡처 생성기</title>
-  <!-- 고화질 이미지 저장을 위한 라이브러리 로드 -->
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js)"></script>
-  <!-- 완전한 마크다운 파싱을 위한 Marked.js 라이브러리 로드 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
-
+  <!-- 고화질 이미지 저장을 위한 라이브러리 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Marked.js (주 CDN 실패 시 예비 CDN 자동 로드) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js" 
+          onerror="this.onerror=null; this.src='https://unpkg.com/marked@4.3.0/marked.min.js';"></script>
   <style>
     /* 기본 레이아웃 변수 설정 (라이트/다크 모드대응) */
     :root {
@@ -443,35 +443,50 @@
     }
 
     // 핵심 렌더링 함수
-    function renderNovel() {
-      let rawText = document.getElementById('inputText').value;
-      const replaceRules = document.getElementById('replaceRules').value;
-      const novelView = document.getElementById('novelView');
+    // Marked.js 옵션 설정 (안전하게 동적 적용)
+if (typeof marked !== 'undefined') {
+  if (typeof marked.use === 'function') {
+    marked.use({ breaks: true, gfm: true });
+  } else if (typeof marked.setOptions === 'function') {
+    marked.setOptions({ breaks: true, gfm: true });
+  }
+}
 
-      // 1. 단어 치환 규칙 적용
-      const rules = replaceRules.split('\n');
-      rules.forEach(rule => {
-        if (rule.includes('->')) {
-          const [target, replacement] = rule.split('->');
-          if (target.trim()) {
-            const safeTarget = target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); 
-            const regex = new RegExp(safeTarget, 'g');
-            rawText = rawText.replace(regex, replacement);
-          }
-        }
-      });
+function renderNovel() {
+  let rawText = document.getElementById('inputText').value;
+  const replaceRules = document.getElementById('replaceRules').value;
+  const novelView = document.getElementById('novelView');
 
-      // 2. 입력된 빈 줄(엔터) 보존 처리
-      rawText = preprocessBlankLines(rawText);
+  // 라이브러리 로드 실패 시 안내
+  if (typeof marked === 'undefined') {
+    novelView.innerHTML = '<p style="color:#ff4d4d; font-weight:bold;">⚠️ 마크다운 라이브러리를 불러오지 못했습니다. 인터넷 연결 상태를 확인해 주세요.</p>';
+    return;
+  }
 
-      // 3. 커스텀 마크다운 문법 프리프로세싱 (하이라이트: ==text==)
-      rawText = rawText.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
-
-      // 4. Marked.js를 사용하여 마크다운 렌더링
-      let parsedHtml = marked.parse(rawText);
-
-      novelView.innerHTML = parsedHtml;
+  // 1. 단어 치환 규칙 적용
+  const rules = replaceRules.split('\n');
+  rules.forEach(rule => {
+    if (rule.includes('->')) {
+      const [target, replacement] = rule.split('->');
+      if (target.trim()) {
+        const safeTarget = target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); 
+        const regex = new RegExp(safeTarget, 'g');
+        rawText = rawText.replace(regex, replacement);
+      }
     }
+  });
+
+  // 2. 하이라이트 문법 미리 변환 (==text== -> <span class="highlight">text</span>)
+  rawText = rawText.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
+
+  // 3. 순수 마크다운 파싱을 먼저 수행
+  let parsedHtml = marked.parse ? marked.parse(rawText) : marked(rawText);
+
+  // 4. 파싱 후 생성된 빈 문단(<p></p>) 높이 보장 처리
+  parsedHtml = parsedHtml.replace(/<p>\s*<\/p>/g, '<p class="empty-line">&nbsp;</p>');
+
+  novelView.innerHTML = parsedHtml;
+}
 
     // 캡처 다운로드 함수
     function downloadPNG() {
