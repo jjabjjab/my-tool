@@ -73,30 +73,22 @@
     .flex-row { display: flex; gap: 10px; align-items: center; }
     .guide-box { background: #e2e3e5; padding: 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; color: #383d41; }
 
-    /* 커스텀 팔레트 색상 피커 스타일 */
-    .color-preset-input {
+    /* 커스텀 팔레트 칩 스타일 */
+    .palette-chip {
       flex: 1;
       height: 28px;
-      border: 1px solid rgba(0,0,0,0.2);
+      border: 1px solid rgba(0, 0, 0, 0.2);
       border-radius: 4px;
       cursor: pointer;
-      padding: 0;
-      background: transparent;
-      transition: transform 0.1s;
+      transition: transform 0.1s, outline 0.1s;
+      position: relative;
     }
-    .color-preset-input:hover {
+    .palette-chip:hover {
       transform: scale(1.05);
     }
-    .color-preset-input::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-    .color-preset-input::-webkit-color-swatch {
-      border: none;
-      border-radius: 3px;
-    }
-    .color-preset-input::-moz-color-swatch {
-      border: none;
-      border-radius: 3px;
+    .palette-chip.active {
+      outline: 2px solid #007bff;
+      outline-offset: 1px;
     }
 
     /* 프리뷰 영역 스타일 (우측) */
@@ -297,20 +289,13 @@
       </div>
     </div>
 
-    <!-- 커스텀 하이라이트 팔레트 섹션 -->
+    <!-- 커스텀 팔레트 섹션 -->
     <div>
       <div class="flex-row" style="justify-content: space-between; margin-bottom: 6px;">
-        <label>하이라이트(==텍스트==) 팔레트 설정</label>
+        <label>하이라이트 팔레트 <span style="font-weight: normal; font-size: 11px; color: #666;">(클릭: 선택 / 더블클릭: 변경)</span></label>
         <button type="button" onclick="resetPalette()" style="font-size: 11px; padding: 2px 8px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;">초기화</button>
       </div>
-      <div class="flex-row" style="gap: 5px;" id="paletteContainer">
-        <input type="color" class="color-preset-input" value="#ffeb3b" oninput="selectPaletteColor(this)" title="팔레트 1 (클릭하여 변경)">
-        <input type="color" class="color-preset-input" value="#00f2fe" oninput="selectPaletteColor(this)" title="팔레트 2 (클릭하여 변경)">
-        <input type="color" class="color-preset-input" value="#ff758c" oninput="selectPaletteColor(this)" title="팔레트 3 (클릭하여 변경)">
-        <input type="color" class="color-preset-input" value="#ff9f43" oninput="selectPaletteColor(this)" title="팔레트 4 (클릭하여 변경)">
-        <input type="color" class="color-preset-input" value="#a8ff78" oninput="selectPaletteColor(this)" title="팔레트 5 (클릭하여 변경)">
-        <input type="color" class="color-preset-input" value="#b45309" oninput="selectPaletteColor(this)" title="팔레트 6 (클릭하여 변경)">
-      </div>
+      <div class="flex-row" style="gap: 5px;" id="paletteContainer"></div>
     </div>
 
     <!-- 행간 조절 버튼 그룹 -->
@@ -361,7 +346,7 @@
       <textarea id="replaceRules" style="height: 60px;" placeholder="예시)&#10;이름->■■"></textarea>
     </div>
 
-    <!-- 소설 본문 입력 구역 (최소 높이를 화면 절반 50vh로 확대) -->
+    <!-- 소설 본문 입력 구역 (최소 높이 50vh 지정) -->
     <div style="display: flex; flex-direction: column; flex: 1;">
       <div class="flex-row" style="justify-content: space-between; margin-bottom: 5px; align-items: center;">
         <label>소설 본문 입력</label>
@@ -376,7 +361,6 @@
         • <b>`인라인코드`</b> 및 <b>```코드블록```</b> 지원
       </div>
       
-      <!-- 입력 상자 높이 50vh 지정 -->
       <textarea id="inputText" style="min-height: 50vh; flex: 1;" placeholder="여기에 소설/마크다운 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
     </div>
 
@@ -391,41 +375,111 @@
   <button id="floatingHighlightBtn" style="position: absolute; display: none; background: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 9999;">✍️ 하이라이트 추가</button>
 
   <script>
+    // 기본 팔레트 색상
+    const DEFAULT_PALETTE = ['#ffeb3b', '#00f2fe', '#ff758c', '#ff9f43', '#a8ff78', '#b45309'];
+    let currentPalette = [];
+    let selectedChipIdx = 0;
+
     window.onload = function() {
       document.getElementById('replaceRules').value = "";
       document.getElementById('inputText').value = "";
+      initPalette();
       renderNovel();
     };
+
+    // 로컬 스토리지에서 팔레트 로드 또는 초기화
+    function initPalette() {
+      const saved = localStorage.getItem('webnovel_palette_colors');
+      if (saved) {
+        try {
+          currentPalette = JSON.parse(saved);
+        } catch(e) {
+          currentPalette = [...DEFAULT_PALETTE];
+        }
+      } else {
+        currentPalette = [...DEFAULT_PALETTE];
+      }
+      renderPaletteUI();
+      selectPaletteColor(0);
+    }
+
+    // 팔레트 저장
+    function savePalette() {
+      localStorage.setItem('webnovel_palette_colors', JSON.stringify(currentPalette));
+    }
+
+    // 팔레트 UI 생성 (클릭/더블클릭 동작 분리)
+    function renderPaletteUI() {
+      const container = document.getElementById('paletteContainer');
+      container.innerHTML = '';
+
+      currentPalette.forEach((color, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'palette-chip' + (idx === selectedChipIdx ? ' active' : '');
+        chip.style.backgroundColor = color;
+        chip.title = `팔레트 ${idx + 1} (클릭: 선택 / 더블클릭: 색상변경)`;
+
+        // 더블클릭 시 사용할 숨겨진 컬러 피커
+        const hiddenPicker = document.createElement('input');
+        hiddenPicker.type = 'color';
+        hiddenPicker.value = color;
+        hiddenPicker.style.display = 'none';
+
+        hiddenPicker.addEventListener('change', (e) => {
+          updatePaletteColor(idx, e.target.value);
+        });
+
+        chip.appendChild(hiddenPicker);
+
+        // 단일 클릭: 색상 선택
+        chip.addEventListener('click', () => {
+          selectPaletteColor(idx);
+        });
+
+        // 더블 클릭: 컬러 피커 열기
+        chip.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          hiddenPicker.click();
+        });
+
+        container.appendChild(chip);
+      });
+    }
+
+    // 팔레트 색상 선택 함수
+    function selectPaletteColor(idx) {
+      selectedChipIdx = idx;
+      const color = currentPalette[idx];
+      document.getElementById('novelView').style.setProperty('--novel-highlight-text', color);
+
+      // 활성 테두리 변경
+      const chips = document.querySelectorAll('#paletteContainer .palette-chip');
+      chips.forEach((c, i) => {
+        if (i === idx) c.classList.add('active');
+        else c.classList.remove('active');
+      });
+    }
+
+    // 더블클릭 후 색상 변경 시 반영 및 저장
+    function updatePaletteColor(idx, newColor) {
+      currentPalette[idx] = newColor;
+      savePalette();
+      renderPaletteUI();
+      selectPaletteColor(idx);
+    }
+
+    // 팔레트 초기화
+    function resetPalette() {
+      currentPalette = [...DEFAULT_PALETTE];
+      savePalette();
+      renderPaletteUI();
+      selectPaletteColor(0);
+    }
 
     function setTheme(theme) {
       const novelView = document.getElementById('novelView');
       novelView.setAttribute('data-theme', theme);
-      
-      // 테마 변경 시 기본 첫 번째 팔레트 색상으로 세팅
-      const firstPalette = document.querySelector('#paletteContainer .color-preset-input');
-      if (firstPalette) {
-        changeHighlightColor(firstPalette.value);
-      }
-    }
-
-    // 하이라이트 색상 변경 함수
-    function changeHighlightColor(color) {
-      document.getElementById('novelView').style.setProperty('--novel-highlight-text', color);
-    }
-
-    // 팔레트 칩 클릭/변경 시 선택한 색상 적용
-    function selectPaletteColor(inputElem) {
-      changeHighlightColor(inputElem.value);
-    }
-
-    // 팔레트 기본값 초기화
-    function resetPalette() {
-      const defaultColors = ['#ffeb3b', '#00f2fe', '#ff758c', '#ff9f43', '#a8ff78', '#b45309'];
-      const inputs = document.querySelectorAll('#paletteContainer .color-preset-input');
-      inputs.forEach((input, idx) => {
-        input.value = defaultColors[idx];
-      });
-      changeHighlightColor(defaultColors[0]);
+      selectPaletteColor(selectedChipIdx);
     }
 
     // 행간 설정 함수
