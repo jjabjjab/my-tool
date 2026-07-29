@@ -10,16 +10,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js" 
           onerror="this.onerror=null; this.src='https://unpkg.com/marked@4.3.0/marked.min.js';"></script>
   <style>
-    /* 기본 레이아웃 변수 설정 (라이트/다크 모드대응) */
+    /* 기본 레이아웃 변수 설정 (라이트/다크 모드 대응) */
     :root {
       --bg-control: #f8f9fa;
       --text-control: #333;
       --border-color: #ced4da;
       
-      /* 캡처 본문 스타일 (기본 다크모드) */
+      /* 다크모드 색상 설정 */
       --novel-bg: #141413;
-      --novel-text: #fafafa;        
-      --novel-bold: #fafafa;        
+      --novel-text: #FAFAFA;        
+      --novel-bold: #FAFAFA;        
+      --novel-em-text: #85837E;
       --novel-highlight-text: #ffeb3b; 
       --novel-code-bg: rgba(255, 255, 255, 0.12); 
       
@@ -33,9 +34,11 @@
     }
 
     [data-theme="light"] {
-      --novel-bg: #ffffff;
-      --novel-text: #000000;        
-      --novel-bold: #000000;
+      /* 라이트모드 색상 설정 */
+      --novel-bg: #FFFFFF;
+      --novel-text: #09090B;        
+      --novel-bold: #09090B;
+      --novel-em-text: #85837E;
       --novel-highlight-text: #b45309; 
       --novel-code-bg: rgba(0, 0, 0, 0.06); 
       
@@ -108,12 +111,6 @@
       line-height: var(--novel-line-height);
     }
 
-    /* 빈 줄(엔터) 정확한 높이 보장 */
-    .novel-capture-area p.empty-line {
-      margin: 0;
-      min-height: calc(1em * var(--novel-line-height));
-    }
-
     /* 헤더 스타일링 */
     .novel-capture-area h1, .novel-capture-area h2, .novel-capture-area h3,
     .novel-capture-area h4, .novel-capture-area h5, .novel-capture-area h6 {
@@ -152,10 +149,10 @@
       font-weight: 700; 
     }
     
-    /* 이탤릭(*text*) 서식 변경: 기울임 제거 & 색상 #85837d 변경 */
+    /* 이탤릭(*text*) 서식 변경: 기울임 제거 & 색상 #85837E 적용 */
     .novel-capture-area em {
-      font-style: normal;
-      color: #85837d;
+      font-style: normal !important;
+      color: var(--novel-em-text) !important;
     }
 
     .novel-capture-area del {
@@ -273,7 +270,7 @@
       </div>
     </div>
 
-    <!-- 하이라이트 글자색 조절 섹션 추가 -->
+    <!-- 하이라이트 글자색 조절 섹션 -->
     <div>
       <div class="flex-row" style="justify-content: space-between; margin-bottom: 6px;">
         <label>하이라이트(==텍스트==) 글자색 선택</label>
@@ -374,7 +371,7 @@
       const novelView = document.getElementById('novelView');
       novelView.setAttribute('data-theme', theme);
       
-      // 테마 변경 시 기본 하이라이트 색상 자동 세팅
+      // 테마 변경 시 기본 하이라이트 색상 세팅
       const defaultColor = theme === 'dark' ? '#ffeb3b' : '#b45309';
       changeHighlightColor(defaultColor);
     }
@@ -443,7 +440,7 @@
       reader.readAsText(file, 'UTF-8');
     }
 
-    // 빈 줄(엔터) 보존 프리프로세서
+    // 빈 줄 전처리 함수 (마크다운 파서를 방해하지 않는 텍스트 키워드 삽입)
     function preprocessBlankLines(rawText) {
       const lines = rawText.split('\n');
       let result = [];
@@ -452,7 +449,6 @@
       for (let i = 0; i < lines.length; i++) {
         let line = lines[i];
 
-        // 코드블록 내부 구분
         if (line.trim().startsWith('```')) {
           inCodeBlock = !inCodeBlock;
           result.push(line);
@@ -464,9 +460,8 @@
           continue;
         }
 
-        // 코드블록 밖의 빈 줄 처리 -> empty-line 클래스가 지정된 태그 생성
         if (line.trim() === '') {
-          result.push('<p class="empty-line">&nbsp;</p>');
+          result.push('[[EMPTY_LINE]]');
         } else {
           result.push(line);
         }
@@ -481,13 +476,12 @@
       const replaceRules = document.getElementById('replaceRules').value;
       const novelView = document.getElementById('novelView');
 
-      // 라이브러리 로드 실패 시 안내
       if (typeof marked === 'undefined') {
         novelView.innerHTML = '<p style="color:#ff4d4d; font-weight:bold;">⚠️ 마크다운 라이브러리를 불러오지 못했습니다. 인터넷 연결 상태를 확인해 주세요.</p>';
         return;
       }
 
-      // Marked.js 옵션 안전 설정
+      // Marked.js 기본 설정
       if (typeof marked.use === 'function') {
         marked.use({ breaks: true, gfm: true });
       } else if (typeof marked.setOptions === 'function') {
@@ -507,14 +501,17 @@
         }
       });
 
-      // 2. 빈 줄(엔터) 보존 처리
+      // 2. 빈 줄(엔터) 보존 프리프로세싱
       rawText = preprocessBlankLines(rawText);
 
-      // 3. 하이라이트 문법 미리 변환 (==text== -> <span class="highlight">text</span>)
+      // 3. 커스텀 하이라이트 문법 미리 변환 (==text== -> <span class="highlight">text</span>)
       rawText = rawText.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
 
       // 4. 순수 마크다운 파싱 수행
-      let parsedHtml = marked.parse ? marked.parse(rawText) : marked(rawText);
+      let parsedHtml = typeof marked.parse === 'function' ? marked.parse(rawText) : marked(rawText);
+
+      // 5. 빈 줄 키워드를 HTML 공백으로 최종 변환
+      parsedHtml = parsedHtml.replace(/\[\[EMPTY_LINE\]\]/g, '&nbsp;');
 
       novelView.innerHTML = parsedHtml;
     }
