@@ -560,6 +560,8 @@
       document.getElementById('inputText').value = "";
       initPalette();
       initFont();
+      initLayout(); // 새로고침 시 레이아웃 저장값 복원
+      initTheme();  // 새로고침 시 테마 저장값 복원
       
       ensureMarkedLoaded().then(() => {
         renderNovel();
@@ -586,6 +588,7 @@
       });
     }
 
+    /* 폰트 초기화 */
     function initFont() {
       const savedType = localStorage.getItem('webnovel_font_type');
       const savedVal = localStorage.getItem('webnovel_font_val');
@@ -662,6 +665,78 @@
       });
     }
 
+    /* 레이아웃 초기화 및 persistence */
+    function initLayout() {
+      const savedLh = localStorage.getItem('webnovel_line_height');
+      const savedWidth = localStorage.getItem('webnovel_width');
+      const savedPaddingV = localStorage.getItem('webnovel_padding_v');
+      const savedPaddingH = localStorage.getItem('webnovel_padding_h');
+
+      if (savedLh) changeLineHeight(savedLh, false);
+      if (savedWidth) changeWidth(savedWidth, false);
+      if (savedPaddingV) changePaddingV(savedPaddingV, false);
+      if (savedPaddingH) changePaddingH(savedPaddingH, false);
+    }
+
+    function changeLineHeight(val, updateStorage = true) {
+      document.getElementById('novelView').style.setProperty('--novel-line-height', val);
+      document.getElementById('lhValue').innerText = val;
+      document.getElementById('lhSlider').value = val;
+      if (updateStorage) localStorage.setItem('webnovel_line_height', val);
+    }
+
+    function changeWidth(width, updateStorage = true) {
+      document.getElementById('novelView').style.width = width + 'px';
+      document.getElementById('widthValue').innerText = width + 'px';
+      document.getElementById('widthSlider').value = width;
+      if (updateStorage) localStorage.setItem('webnovel_width', width);
+    }
+
+    function changePaddingV(val, updateStorage = true) {
+      document.getElementById('novelView').style.setProperty('--novel-padding-v', val + 'px');
+      document.getElementById('paddingVValue').innerText = val + 'px';
+      document.getElementById('paddingVSlider').value = val;
+      if (updateStorage) localStorage.setItem('webnovel_padding_v', val);
+    }
+
+    function changePaddingH(val, updateStorage = true) {
+      document.getElementById('novelView').style.setProperty('--novel-padding-h', val + 'px');
+      document.getElementById('paddingHValue').innerText = val + 'px';
+      document.getElementById('paddingHSlider').value = val;
+      if (updateStorage) localStorage.setItem('webnovel_padding_h', val);
+    }
+
+    /* 테마 저장 및 초기화 */
+    function initTheme() {
+      const savedTheme = localStorage.getItem('webnovel_theme');
+      if (savedTheme) {
+        setTheme(savedTheme, false);
+      }
+    }
+
+    function setTheme(theme, updateStorage = true) {
+      const novelView = document.getElementById('novelView');
+      novelView.setAttribute('data-theme', theme);
+
+      const darkBtn = document.getElementById('btnThemeDark');
+      const lightBtn = document.getElementById('btnThemeLight');
+
+      if (theme === 'dark') {
+        darkBtn.classList.add('active');
+        lightBtn.classList.remove('active');
+      } else {
+        lightBtn.classList.add('active');
+        darkBtn.classList.remove('active');
+      }
+
+      if (updateStorage) {
+        localStorage.setItem('webnovel_theme', theme);
+      }
+
+      selectPaletteColor(selectedChipIdx);
+    }
+
+    /* 팔레트 함수 */
     function initPalette() {
       const saved = localStorage.getItem('webnovel_palette_colors');
       if (saved) {
@@ -754,44 +829,6 @@
       savePalette();
       renderPaletteUI();
       selectPaletteColor(0);
-    }
-
-    function setTheme(theme) {
-      const novelView = document.getElementById('novelView');
-      novelView.setAttribute('data-theme', theme);
-
-      const darkBtn = document.getElementById('btnThemeDark');
-      const lightBtn = document.getElementById('btnThemeLight');
-
-      if (theme === 'dark') {
-        darkBtn.classList.add('active');
-        lightBtn.classList.remove('active');
-      } else {
-        lightBtn.classList.add('active');
-        darkBtn.classList.remove('active');
-      }
-
-      selectPaletteColor(selectedChipIdx);
-    }
-
-    function changeLineHeight(val) {
-      document.getElementById('novelView').style.setProperty('--novel-line-height', val);
-      document.getElementById('lhValue').innerText = val;
-    }
-
-    function changeWidth(width) {
-      document.getElementById('novelView').style.width = width + 'px';
-      document.getElementById('widthValue').innerText = width + 'px';
-    }
-
-    function changePaddingV(val) {
-      document.getElementById('novelView').style.setProperty('--novel-padding-v', val + 'px');
-      document.getElementById('paddingVValue').innerText = val + 'px';
-    }
-
-    function changePaddingH(val) {
-      document.getElementById('novelView').style.setProperty('--novel-padding-h', val + 'px');
-      document.getElementById('paddingHValue').innerText = val + 'px';
     }
 
     function preprocessBlankLines(rawText) {
