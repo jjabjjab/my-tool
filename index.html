@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>웹소설 스타일 캡처 생성기</title>
-  <!-- 인기 웹 폰트 CDN 로드 -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Maru+Buri:wght@400;700&family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
   <!-- 고화질 이미지 저장을 위한 라이브러리 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- Marked.js (주 CDN 실패 시 예비 CDN 자동 로드) -->
@@ -58,8 +54,7 @@
     .control-panel { width: 400px; padding: 20px; background: var(--bg-control); color: var(--text-control); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
     h2 { font-size: 18px; margin-bottom: 5px; }
     label { font-size: 13px; font-weight: bold; display: block; }
-    textarea, input[type="text"], select { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: vertical; }
-    select { cursor: pointer; background: white; }
+    textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: vertical; }
     
     input[type="range"] { width: 100%; margin-top: 5px; cursor: pointer; }
 
@@ -136,6 +131,7 @@
       margin-bottom: 0.4em;
       line-height: 1.3;
       opacity: 1;
+      font-family: inherit;
     }
     .novel-capture-area h1 { font-size: 1.8em; }
     .novel-capture-area h2 { font-size: 1.5em; }
@@ -191,6 +187,7 @@
       margin: 0.8em 0 1em 0;
       color: inherit;
       opacity: 1;
+      font-family: inherit;
     }
     .novel-capture-area blockquote p {
       margin-bottom: 0.5em;
@@ -218,6 +215,7 @@
       margin: 1em 0;
       font-size: 0.9em;
       background-color: transparent;
+      font-family: inherit;
     }
     .novel-capture-area th, .novel-capture-area td {
       border: 1px solid var(--novel-bar-color);
@@ -225,24 +223,25 @@
       color: inherit;
       background-color: transparent;
       font-weight: normal !important;
+      font-family: inherit;
     }
     .novel-capture-area th {
       font-weight: normal !important;
     }
 
-    /* 코드블록 서식 */
+    /* 코드블록 및 인라인 코드 서식 (본문 폰트와 통일) */
     .novel-capture-area pre {
       background-color: var(--novel-code-bg);
       padding: 12px 15px;
       border-radius: 6px;
-      font-family: Consolas, Monaco, 'Andale Mono', monospace;
+      font-family: inherit !important;
       color: inherit;
       white-space: pre-wrap;
       word-break: break-all;
       overflow-wrap: break-word;
     }
     .novel-capture-area code { 
-      font-family: Consolas, Monaco, 'Andale Mono', monospace; 
+      font-family: inherit !important; 
       background: var(--novel-code-bg); 
       padding: 2px 6px; 
       border-radius: 4px; 
@@ -257,6 +256,7 @@
       font-size: 0.9em;
       display: block;
       color: inherit;
+      font-family: inherit !important;
     }
     
     /* 하이라이트 스타일 */
@@ -288,23 +288,11 @@
       </div>
     </div>
 
-    <!-- 폰트 설정 섹션 -->
+    <!-- 로컬 폰트 전용 설정 섹션 -->
     <div>
-      <label style="margin-bottom: 5px;">폰트 설정</label>
-      <!-- 1. 추천 웹 폰트 프리셋 -->
-      <select id="fontPreset" onchange="changeFontPreset(this.value)" style="margin-bottom: 6px;">
-        <option value="default">시스템 기본 고딕 (Sans-serif)</option>
-        <option value="gowun-batang">고운바탕 (Gowun Batang)</option>
-        <option value="nanum-myeongjo">나눔명조 (Nanum Myeongjo)</option>
-        <option value="maru-buri">마루 부리 (Maru Buri)</option>
-        <option value="noto-serif-kr">Noto Serif KR (명조계열)</option>
-        <option value="noto-sans-kr">Noto Sans KR (고딕계열)</option>
-      </select>
+      <label style="margin-bottom: 5px;">폰트 설정 (로컬 폰트)</label>
+      <input type="text" id="customFontInput" placeholder="PC 폰트명 입력 (예: KoPubWorld바탕, 리디바탕)" oninput="applyLocalFontName(this.value)" style="margin-bottom: 6px;">
       
-      <!-- 2. PC 설치 로컬 폰트 직접 입력 -->
-      <input type="text" id="customFontInput" placeholder="로컬 폰트명 직접 입력 (예: KoPubWorld바탕)" oninput="applyCustomFontName(this.value)" style="margin-bottom: 6px;">
-      
-      <!-- 3. 커스텀 폰트 파일 업로드 -->
       <div style="font-size: 11px; color: #666; margin-bottom: 3px;">또는 폰트 파일 직접 업로드 (.ttf / .otf / .woff)</div>
       <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" onchange="handleFontFileUpload()" style="font-size: 12px; padding: 6px;">
     </div>
@@ -402,33 +390,54 @@
       document.getElementById('replaceRules').value = "";
       document.getElementById('inputText').value = "";
       initPalette();
+      initFont(); // 저장된 폰트 복원
       renderNovel();
     };
 
-    // 1. 웹 폰트 프리셋 변경 함수
-    function changeFontPreset(val) {
-      document.getElementById('customFontInput').value = '';
-      let fontFamily = '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
-      
-      if (val === 'gowun-batang') fontFamily = '"Gowun Batang", serif';
-      else if (val === 'nanum-myeongjo') fontFamily = '"Nanum Myeongjo", serif';
-      else if (val === 'maru-buri') fontFamily = '"Maru Buri", serif';
-      else if (val === 'noto-serif-kr') fontFamily = '"Noto Serif KR", serif';
-      else if (val === 'noto-sans-kr') fontFamily = '"Noto Sans KR", sans-serif';
+    // 1. 폰트 초기화 및 저장된 값 로드
+    function initFont() {
+      const savedType = localStorage.getItem('webnovel_font_type');
+      const savedVal = localStorage.getItem('webnovel_font_val');
+      const savedInputVal = localStorage.getItem('webnovel_font_input_val');
 
-      document.getElementById('novelView').style.setProperty('--novel-font-family', fontFamily);
+      if (savedInputVal) {
+        document.getElementById('customFontInput').value = savedInputVal;
+      }
+
+      if (savedType === 'uploaded' && savedVal) {
+        loadFontFromDataUrl('CustomUploadedFont_Saved', savedVal);
+      } else if (savedType === 'name' && savedVal) {
+        applyLocalFontName(savedVal, false);
+      }
     }
 
-    // 2. 로컬 폰트 직접 입력 함수
-    function applyCustomFontName(fontName) {
-      if (!fontName.trim()) {
-        changeFontPreset(document.getElementById('fontPreset').value);
+    // 2. PC 설치 로컬 폰트명 적용 및 저장
+    function applyLocalFontName(fontName, updateStorage = true) {
+      const name = fontName.trim();
+      const novelView = document.getElementById('novelView');
+
+      if (!name) {
+        const defaultFont = '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+        novelView.style.setProperty('--novel-font-family', defaultFont);
+        if (updateStorage) {
+          localStorage.removeItem('webnovel_font_type');
+          localStorage.removeItem('webnovel_font_val');
+          localStorage.removeItem('webnovel_font_input_val');
+        }
         return;
       }
-      document.getElementById('novelView').style.setProperty('--novel-font-family', `"${fontName.trim()}", sans-serif`);
+
+      const fontFamilyStr = `"${name}", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+      novelView.style.setProperty('--novel-font-family', fontFamilyStr);
+
+      if (updateStorage) {
+        localStorage.setItem('webnovel_font_type', 'name');
+        localStorage.setItem('webnovel_font_val', name);
+        localStorage.setItem('webnovel_font_input_val', name);
+      }
     }
 
-    // 3. 커스텀 폰트 파일(.ttf/.otf/.woff) 업로드 함수
+    // 3. 폰트 파일 업로드 핸들러
     function handleFontFileUpload() {
       const fileInput = document.getElementById('fontFileInput');
       const file = fileInput.files[0];
@@ -436,19 +445,33 @@
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const fontData = e.target.result;
+        const dataUrl = e.target.result;
         const fontName = 'CustomUploadedFont_' + Date.now();
-        const fontFace = new FontFace(fontName, fontData);
-
-        fontFace.load().then(function(loadedFace) {
-          document.fonts.add(loadedFace);
-          document.getElementById('novelView').style.setProperty('--novel-font-family', `"${fontName}", sans-serif`);
-          document.getElementById('customFontInput').value = file.name.replace(/\.[^/.]+$/, "");
-        }).catch(function(err) {
-          alert('폰트 파일을 로드하는 중 오류가 발생했습니다: ' + err);
-        });
+        loadFontFromDataUrl(fontName, dataUrl, file.name);
       };
-      reader.readAsArrayBuffer(file);
+      reader.readAsDataURL(file);
+    }
+
+    // DataURL로부터 폰트 로드 및 저장
+    function loadFontFromDataUrl(fontName, dataUrl, fileName = '') {
+      const fontFace = new FontFace(fontName, `url(${dataUrl})`);
+      fontFace.load().then(function(loadedFace) {
+        document.fonts.add(loadedFace);
+        document.getElementById('novelView').style.setProperty('--novel-font-family', `"${fontName}", -apple-system, sans-serif`);
+        
+        const displayName = fileName ? fileName.replace(/\.[^/.]+$/, "") : (document.getElementById('customFontInput').value || "업로드된 폰트");
+        document.getElementById('customFontInput').value = displayName;
+
+        try {
+          localStorage.setItem('webnovel_font_type', 'uploaded');
+          localStorage.setItem('webnovel_font_val', dataUrl);
+          localStorage.setItem('webnovel_font_input_val', displayName);
+        } catch(e) {
+          console.warn('폰트 파일 용량이 커서 저장되지 않았습니다.');
+        }
+      }).catch(function(err) {
+        alert('폰트 파일을 로드하는 중 오류가 발생했습니다: ' + err);
+      });
     }
 
     function initPalette() {
@@ -620,7 +643,6 @@
       }).join('');
     }
 
-    // 리스트 자동 변환 무력화 전처리 함수
     function disarmLists(rawText) {
       const parts = rawText.split(/(```[\s\S]*?```)/g);
       return parts.map((part, index) => {
