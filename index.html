@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>웹소설 스타일 캡처 생성기</title>
+  <title>텍스트 캡처 생성기</title>
   <!-- 고화질 이미지 저장을 위한 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <!-- Marked.js (jsDelivr CDN 및 예비 CDN) -->
@@ -436,7 +436,7 @@
   <!-- 좌측 컨트롤 패널 -->
   <div class="control-panel">
     <div class="panel-header">
-      <h2>소설 캡처 스튜디오</h2>
+      <h2>텍스트 캡처 스튜디오</h2>
       <p>텍스트를 커스텀 이미지로 고화질 저장합니다.</p>
     </div>
     
@@ -518,7 +518,7 @@
 
       <div>
         <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">단어 자동 치환 (형식: 원본->바꿀단어)</label>
-        <textarea id="replaceRules" style="height: 65px; min-height: 45px; resize: vertical;" placeholder="예시)&#10;이름->■■&#10;단어->바꿀단어"></textarea>
+        <textarea id="replaceRules" style="height: 65px; min-height: 45px; resize: vertical;" placeholder="예시)&#10;이름->■■"></textarea>
       </div>
 
       <details class="guide-details">
@@ -527,13 +527,13 @@
           • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭*</b>, <b>~~취소선~~</b>, <b>++밑줄++</b><br>
           • <b>==텍스트==</b> : 하이라이트 (드래그 추가 / 클릭 삭제)<br>
           • <b>&gt; 인용구</b>, <b>| 표 | 작성 |</b>, <b>`인라인코드`</b><br>
-          • <b>```제목```</b> : 제목바를 포함한 코드블록
+          • <b>```</b> : 제목바를 포함한 코드블록
         </div>
       </details>
       
       <div>
-        <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">소설 본문 입력</label>
-        <textarea id="inputText" style="height: 320px; min-height: 180px; resize: vertical;" placeholder="소설 본문이나 마크다운 텍스트를 입력하세요..." oninput="renderNovel()"></textarea>
+        <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">텍스트 본문 입력</label>
+        <textarea id="inputText" style="height: 320px; min-height: 180px; resize: vertical;" placeholder="텍스트를 입력하세요..." oninput="renderNovel()"></textarea>
       </div>
     </div>
 
