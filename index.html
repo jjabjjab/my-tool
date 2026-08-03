@@ -19,13 +19,10 @@
       /* 다크모드 색상 설정 */
       --novel-bg: #141413;
       --novel-text: #FAFAFA;        
-      --novel-bold: #FAFAFA;        
       --novel-em-text: #85837E;
       --novel-highlight-text: #ffeb3b; 
-      --novel-code-bg: rgba(255, 255, 255, 0.12); 
-      
-      --novel-bar-color: rgba(255, 255, 255, 0.25); 
-      --novel-text-low: rgba(255, 255, 255, 0.55);    
+      --novel-code-bg: #242423; 
+      --novel-bar-color: #3d3d3c; 
       
       /* 기본 행간 및 여백 설정 */
       --novel-line-height: 1.85;
@@ -37,13 +34,10 @@
       /* 라이트모드 색상 설정 */
       --novel-bg: #FFFFFF;
       --novel-text: #09090B;        
-      --novel-bold: #09090B;
       --novel-em-text: #85837E;
       --novel-highlight-text: #b45309; 
-      --novel-code-bg: rgba(0, 0, 0, 0.06); 
-      
-      --novel-bar-color: rgba(0, 0, 0, 0.18);        
-      --novel-text-low: rgba(0, 0, 0, 0.48);         
+      --novel-code-bg: #f0f0f0; 
+      --novel-bar-color: #d1d1d1;        
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -113,7 +107,7 @@
       word-break: keep-all;
       overflow-wrap: break-word;
       margin: 0 0 1em 0; 
-      color: var(--novel-text);
+      color: inherit;
       line-height: var(--novel-line-height);
     }
 
@@ -127,20 +121,21 @@
       min-height: calc(1em * var(--novel-line-height));
     }
 
-    /* 헤더 스타일링 */
+    /* 헤더 스타일링 (구분선 제거 및 글자색 본문과 동일하게 설정) */
     .novel-capture-area h1, .novel-capture-area h2, .novel-capture-area h3,
     .novel-capture-area h4, .novel-capture-area h5, .novel-capture-area h6 {
-      color: var(--novel-bold);
+      color: inherit;
       margin-top: 0.8em;
       margin-bottom: 0.4em;
       line-height: 1.3;
+      opacity: 1;
     }
-    .novel-capture-area h1 { font-size: 1.8em; border-bottom: 1px solid var(--novel-bar-color); padding-bottom: 0.3em; }
-    .novel-capture-area h2 { font-size: 1.5em; border-bottom: 1px solid var(--novel-bar-color); padding-bottom: 0.3em; }
+    .novel-capture-area h1 { font-size: 1.8em; }
+    .novel-capture-area h2 { font-size: 1.5em; }
     .novel-capture-area h3 { font-size: 1.3em; }
     .novel-capture-area h4 { font-size: 1.15em; }
     .novel-capture-area h5 { font-size: 1em; }
-    .novel-capture-area h6 { font-size: 0.85em; opacity: 0.8; }
+    .novel-capture-area h6 { font-size: 0.85em; }
 
     /* 블록 요소 상하 여백 */
     .novel-capture-area ul,
@@ -158,37 +153,41 @@
       margin: 1.5em 0;
     }
 
-    /* 마크다운 기본 인라인 서식 정의 */
+    /* 볼드: 색상 변경 없이 볼드체만 적용 */
     .novel-capture-area strong { 
-      color: var(--novel-bold); 
+      color: inherit; 
       font-weight: 700; 
     }
     
-    /* 이탤릭(*text*) 서식 변경: 기울임 제거 & 색상 #85837E 적용 */
+    /* 이탤릭(*text*) 서식 변경: 기울임 제거 & 전용 색상(#85837E) 유지 */
     .novel-capture-area em {
       font-style: normal !important;
       color: var(--novel-em-text) !important;
     }
 
+    /* 취소선: 색상 변동/투명도 없이 연출 */
     .novel-capture-area del {
+      color: inherit;
       text-decoration: line-through;
-      opacity: 0.7;
+      opacity: 1;
     }
 
     .novel-capture-area u {
+      color: inherit;
       text-decoration: underline;
     }
 
     .novel-capture-area .low-opacity { 
-      color: var(--novel-text-low) !important;
+      color: inherit;
     }
     
-    /* 인용구(blockquote) 스타일 */
+    /* 인용구(blockquote) 스타일: 글자색 변동 제거 */
     .novel-capture-area blockquote { 
       border-left: 4px solid var(--novel-bar-color); 
       padding-left: 15px; 
       margin: 0.8em 0 1em 0;
-      opacity: 0.9;
+      color: inherit;
+      opacity: 1;
     }
     .novel-capture-area blockquote p {
       margin-bottom: 0.5em;
@@ -203,6 +202,7 @@
     }
     .novel-capture-area li {
       margin-bottom: 0.3em;
+      color: inherit;
     }
     .novel-capture-area input[type="checkbox"] {
       margin-right: 0.5em;
@@ -210,11 +210,8 @@
 
     /* 링크 및 이미지 */
     .novel-capture-area a {
-      color: #64b5f6;
+      color: inherit;
       text-decoration: underline;
-    }
-    [data-theme="light"] .novel-capture-area a {
-      color: #1976d2;
     }
     .novel-capture-area img {
       max-width: 100%;
@@ -233,6 +230,7 @@
     .novel-capture-area th, .novel-capture-area td {
       border: 1px solid var(--novel-bar-color);
       padding: 8px 12px;
+      color: inherit;
     }
     .novel-capture-area th {
       background-color: var(--novel-code-bg);
@@ -246,6 +244,7 @@
       border-radius: 6px;
       overflow-x: auto;
       font-family: Consolas, Monaco, 'Andale Mono', monospace;
+      color: inherit;
     }
     .novel-capture-area code { 
       font-family: Consolas, Monaco, 'Andale Mono', monospace; 
@@ -253,12 +252,14 @@
       padding: 2px 6px; 
       border-radius: 4px; 
       font-size: 0.9em; 
+      color: inherit;
     }
     .novel-capture-area pre code {
       background: none;
       padding: 0;
       font-size: 0.9em;
       display: block;
+      color: inherit;
     }
     
     /* 하이라이트 스타일 */
@@ -616,7 +617,21 @@
       novelView.innerHTML = parsedHtml;
     }
 
-    // 캡처 다운로드 함수
+    // color(srgb ...) 형태를 rgb/rgba로 변환하는 호환성 함수
+    function convertColorSrgbToRgb(colorStr) {
+      if (!colorStr || typeof colorStr !== 'string') return colorStr;
+      return colorStr.replace(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\)/g, (m, r, g, b, a) => {
+        const red = Math.round(parseFloat(r) * 255);
+        const green = Math.round(parseFloat(g) * 255);
+        const blue = Math.round(parseFloat(b) * 255);
+        if (a !== undefined) {
+          return `rgba(${red}, ${green}, ${blue}, ${a})`;
+        }
+        return `rgb(${red}, ${green}, ${blue})`;
+      });
+    }
+
+    // 캡처 다운로드 함수 (html2canvas 호환성 예외 처리 반영)
     function downloadPNG() {
       const novelView = document.getElementById('novelView');
       renderNovel();
@@ -624,7 +639,24 @@
       html2canvas(novelView, {
         scale: 3, 
         useCORS: true,
-        backgroundColor: null 
+        backgroundColor: null,
+        onclone: function(clonedDoc) {
+          const target = clonedDoc.getElementById('novelView');
+          if (!target) return;
+
+          const elements = [target, ...Array.from(target.querySelectorAll('*'))];
+          const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor'];
+          
+          elements.forEach(el => {
+            const style = window.getComputedStyle(el);
+            props.forEach(prop => {
+              const val = style[prop];
+              if (val && val.includes('color(')) {
+                el.style[prop] = convertColorSrgbToRgb(val);
+              }
+            });
+          });
+        }
       }).then(canvas => {
         const link = document.createElement('a');
         link.download = '웹소설_캡처_' + new Date().getTime() + '.png';
