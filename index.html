@@ -908,10 +908,12 @@
       rules.forEach(rule => {
         if (rule.includes('->')) {
           const [target, replacement] = rule.split('->');
-          if (target.trim()) {
-            const safeTarget = target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); 
+          const trimmedTarget = target.trim();
+          const trimmedRep = replacement ? replacement.trim() : '';
+          if (trimmedTarget) {
+            const safeTarget = trimmedTarget.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); 
             const regex = new RegExp(safeTarget, 'g');
-            rawText = rawText.replace(regex, replacement);
+            rawText = rawText.replace(regex, trimmedRep);
           }
         }
       });
@@ -1042,19 +1044,22 @@
       }
     });
 
-    /* 패턴 생성기 */
+    /* 마크다운 서식 + 단어 치환 규칙 대응 정규식 패턴 생성기 */
     function buildFlexPattern(str, rules = []) {
       if (!str) return '';
 
       const MD_OPT = '(?:[\\*_~+=`\\\\()[\\]{}#>-])*';
       const FLEX_SPACE = '(?:[\\*_~+=`\\\\()[\\]{}#>-]|\\s)+';
 
+      // 긴 치환 단어 규칙부터 우선 매칭
+      const sortedRules = [...rules].sort((a, b) => b.replacement.length - a.replacement.length);
+
       let regexParts = [];
       let i = 0;
 
       while (i < str.length) {
         let matchedRule = null;
-        for (const r of rules) {
+        for (const r of sortedRules) {
           if (r.replacement && str.startsWith(r.replacement, i)) {
             matchedRule = r;
             break;
@@ -1064,7 +1069,7 @@
         if (matchedRule) {
           const safeTarget = matchedRule.target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
           const safeRep = matchedRule.replacement.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          regexParts.push(`(?:${safeTarget}|${safeRep})`);
+          regexParts.push(`${MD_OPT}(?:${safeTarget}|${safeRep})${MD_OPT}`);
           i += matchedRule.replacement.length;
         } else {
           const char = str[i];
@@ -1081,7 +1086,7 @@
         }
       }
 
-      let pattern = '';
+      let pattern = MD_OPT;
       for (let j = 0; j < regexParts.length; j++) {
         pattern += regexParts[j];
         if (j < regexParts.length - 1) {
@@ -1092,10 +1097,11 @@
           }
         }
       }
+      pattern += MD_OPT;
       return pattern;
     }
 
-    /* 하이라이트 추가 클릭 이벤트 (마크다운 기호 바깥으로 == 위치 자동 보정) */
+    /* 하이라이트 추가 버튼 클릭 시 정밀 매칭 및 태그 감싸기 */
     floatBtn.addEventListener('click', function() {
       if (!currentSelectionContext || !currentSelectionContext.selectedText) return;
 
@@ -1108,10 +1114,10 @@
         replaceRulesStr.split('\n').forEach(rule => {
           if (rule.includes('->')) {
             const [target, replacement] = rule.split('->');
-            if (target.trim() && replacement.trim()) {
+            if (target.trim()) {
               rules.push({
                 target: target.trim(),
-                replacement: replacement.trim()
+                replacement: replacement ? replacement.trim() : ''
               });
             }
           }
@@ -1119,15 +1125,16 @@
       }
 
       const { selectedText, prefix, suffix } = currentSelectionContext;
+      const MD_OPT = '(?:[\\*_~+=`\\\\()[\\]{}#>-])*';
 
       const prefixPat = buildFlexPattern(prefix, rules);
       const targetPat = buildFlexPattern(selectedText, rules);
       const suffixPat = buildFlexPattern(suffix, rules);
 
       const attempts = [
-        new RegExp(`(${prefixPat})(${targetPat})(${suffixPat})`),
-        new RegExp(`()(${targetPat})(${suffixPat})`),
-        new RegExp(`(${prefixPat})(${targetPat})()`),
+        new RegExp(`(${prefixPat})${MD_OPT}(${targetPat})${MD_OPT}(${suffixPat})`),
+        new RegExp(`()(${targetPat})${MD_OPT}(${suffixPat})`),
+        new RegExp(`(${prefixPat})${MD_OPT}(${targetPat})()`),
         new RegExp(`()(${targetPat})()`)
       ];
 
@@ -1146,13 +1153,10 @@
         let targetMatch = match[2];
         let end = start + targetMatch.length;
 
-        // 마크다운 서식 기호(*, _, ~, +)와 교차해서 태그가 꼬이는 현상 방지
-        // 시작점이 마크다운 기호 직후라면 기호 앞까지 시작 위치 확장
+        // 마크다운 서식 기호(*, _, ~, +) 바깥으로 == 위치 보정
         while (start > 0 && /[\*_~+]/.test(currentContent[start - 1])) {
           start--;
         }
-
-        // 종료점이 마크다운 기호 직전이라면 기호 뒤까지 종료 위치 확장
         while (end < currentContent.length && /[\*_~+]/.test(currentContent[end])) {
           end++;
         }
