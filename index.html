@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>웹소설 스타일 캡처 생성기</title>
   <!-- 고화질 이미지 저장을 위한 라이브러리 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js)"></script>
   <!-- Marked.js (주 CDN 실패 시 예비 CDN 자동 로드) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js" 
-          onerror="this.onerror=null; this.src='https://unpkg.com/marked@4.3.0/marked.min.js';"></script>
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js](https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js)" 
+          onerror="this.onerror=null; this.src='[https://unpkg.com/marked@4.3.0/marked.min.js](https://unpkg.com/marked@4.3.0/marked.min.js)';"></script>
   <style>
     /* 기본 레이아웃 변수 설정 (라이트/다크 모드 대응) */
     :root {
@@ -23,6 +23,10 @@
       --novel-highlight-text: #ffeb3b; 
       --novel-code-bg: #242423; 
       --novel-bar-color: #3d3d3c; 
+
+      /* 코드블록 변수 */
+      --novel-code-box-bg: rgba(255, 255, 255, 0.04);
+      --novel-code-header-bg: rgba(255, 255, 255, 0.08);
       
       /* 기본 행간, 여백 및 폰트 설정 */
       --novel-line-height: 1.85;
@@ -39,6 +43,10 @@
       --novel-highlight-text: #b45309; 
       --novel-code-bg: #f0f0f0; 
       --novel-bar-color: #d1d1d1;        
+
+      /* 코드블록 변수 */
+      --novel-code-box-bg: rgba(0, 0, 0, 0.02);
+      --novel-code-header-bg: rgba(0, 0, 0, 0.06);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -142,9 +150,9 @@
 
     /* 블록 요소 상하 여백 */
     .novel-capture-area table,
-    .novel-capture-area pre {
-      margin-top: 0.6em;
-      margin-bottom: 0.8em;
+    .novel-capture-area .code-block-container {
+      margin-top: 0.8em;
+      margin-bottom: 1em;
     }
 
     /* 구분선 */
@@ -229,31 +237,61 @@
       font-weight: normal !important;
     }
 
-    /* 코드블록 및 인라인 코드 서식 (본문 폰트와 통일) */
+    /* 코드블록 전용 커스텀 컨테이너 (제목바 지원) */
+    .code-block-container {
+      background-color: var(--novel-code-box-bg);
+      border: 1px solid var(--novel-bar-color);
+      border-radius: 12px;
+      overflow: hidden;
+      font-family: inherit;
+    }
+    .code-block-header {
+      background-color: var(--novel-code-header-bg);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--novel-bar-color);
+      font-size: 14px;
+      color: var(--novel-em-text);
+    }
+    .code-block-title {
+      font-weight: 500;
+      opacity: 0.85;
+    }
+    .code-block-copy-btn {
+      display: flex;
+      align-items: center;
+      opacity: 0.6;
+      color: inherit;
+    }
+    .code-block-copy-btn svg {
+      width: 16px;
+      height: 16px;
+    }
     .novel-capture-area pre {
-      background-color: var(--novel-code-bg);
-      padding: 12px 15px;
-      border-radius: 6px;
+      background-color: transparent !important;
+      padding: 14px 16px;
+      margin: 0;
+      border-radius: 0;
       font-family: inherit !important;
       color: inherit;
       white-space: pre-wrap;
       word-break: break-all;
       overflow-wrap: break-word;
     }
-    .novel-capture-area code { 
-      font-family: inherit !important; 
-      background: var(--novel-code-bg); 
-      padding: 2px 6px; 
-      border-radius: 4px; 
-      font-size: 0.9em; 
+    .novel-capture-area :not(pre) > code {
+      font-family: inherit !important;
+      background: var(--novel-code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
       color: inherit;
-      white-space: pre-wrap;
-      word-break: break-all;
     }
     .novel-capture-area pre code {
-      background: none;
-      padding: 0;
-      font-size: 0.9em;
+      background: none !important;
+      padding: 0 !important;
+      font-size: 0.95em;
       display: block;
       color: inherit;
       font-family: inherit !important;
@@ -365,7 +403,7 @@
         • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭(색상변경)*</b>, <b>~~취소선~~</b>, <b>++밑줄++</b><br>
         • <b>==텍스트==</b> : 하이라이트 글자색 변경 (드래그 추가 / 클릭 삭제)<br>
         • <b>&gt; 인용구</b>, <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
-        • <b>`인라인코드`</b> 및 <b>```코드블록```</b> 지원
+        • <b>`인라인코드`</b> 및 <b>```제목``` 코드블록</b> 지원
       </div>
       
       <textarea id="inputText" style="min-height: 50vh; flex: 1;" placeholder="여기에 소설/마크다운 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
@@ -452,7 +490,6 @@
       reader.readAsDataURL(file);
     }
 
-    // DataURL로부터 폰트 로드 및 저장
     function loadFontFromDataUrl(fontName, dataUrl, fileName = '') {
       const fontFace = new FontFace(fontName, `url(${dataUrl})`);
       fontFace.load().then(function(loadedFace) {
@@ -667,10 +704,38 @@
         return;
       }
 
+      // 커스텀 코드블록 렌더러 정의 (제목바 + 복사 아이콘 추가)
+      const customRenderer = new marked.Renderer();
+      customRenderer.code = function(code, infostring, isEscaped) {
+        const title = (infostring || '').trim();
+        const escapedCode = code
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+        const copySvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+
+        if (title) {
+          return `<div class="code-block-container">
+            <div class="code-block-header">
+              <span class="code-block-title">${title}</span>
+              <span class="code-block-copy-btn">${copySvg}</span>
+            </div>
+            <pre><code>${escapedCode}</code></pre>
+          </div>\n`;
+        } else {
+          return `<div class="code-block-container">
+            <pre><code>${escapedCode}</code></pre>
+          </div>\n`;
+        }
+      };
+
       if (typeof marked.use === 'function') {
-        marked.use({ breaks: true, gfm: true });
+        marked.use({ breaks: true, gfm: true, renderer: customRenderer });
       } else if (typeof marked.setOptions === 'function') {
-        marked.setOptions({ breaks: true, gfm: true });
+        marked.setOptions({ breaks: true, gfm: true, renderer: customRenderer });
       }
 
       // 1. 단어 치환 규칙 적용
