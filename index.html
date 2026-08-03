@@ -237,41 +237,30 @@
       font-weight: normal !important;
     }
 
-    /* 코드블록 전용 커스텀 컨테이너 (제목바 지원) */
+    /* 코드블록 전용 커스텀 컨테이너 */
     .code-block-container {
       background-color: var(--novel-code-box-bg);
       border: 1px solid var(--novel-bar-color);
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
       font-family: inherit;
     }
     .code-block-header {
       background-color: var(--novel-code-header-bg);
-      padding: 10px 16px;
+      padding: 6px 14px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--novel-bar-color);
-      font-size: 14px;
+      font-size: 13px;
       color: var(--novel-em-text);
     }
     .code-block-title {
       font-weight: 500;
       opacity: 0.85;
     }
-    .code-block-copy-btn {
-      display: flex;
-      align-items: center;
-      opacity: 0.6;
-      color: inherit;
-    }
-    .code-block-copy-btn svg {
-      width: 16px;
-      height: 16px;
-    }
     .novel-capture-area pre {
       background-color: transparent !important;
-      padding: 14px 16px;
+      padding: 12px 14px;
       margin: 0;
       border-radius: 0;
       font-family: inherit !important;
@@ -430,13 +419,11 @@
       initPalette();
       initFont();
       
-      // 라이브러리가 완전히 준비될 때까지 안전 대기
       ensureMarkedLoaded().then(() => {
         renderNovel();
       });
     };
 
-    // 라이브러리 비동기 로딩 보장 함수
     function ensureMarkedLoaded() {
       return new Promise((resolve) => {
         if (typeof marked !== 'undefined') {
@@ -449,7 +436,7 @@
           if (typeof marked !== 'undefined') {
             clearInterval(interval);
             resolve();
-          } else if (attempts > 30) { // 3초 초과 시 해제
+          } else if (attempts > 30) {
             clearInterval(interval);
             resolve();
           }
@@ -726,7 +713,7 @@
         return;
       }
 
-      // 커스텀 코드블록 렌더러 정의
+      // 커스텀 코드블록 렌더러 정의 (복사 아이콘 제거)
       const customRenderer = new marked.Renderer();
       customRenderer.code = function(code, infostring, isEscaped) {
         const title = (infostring || '').trim();
@@ -737,13 +724,10 @@
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#39;');
 
-        const copySvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-
         if (title) {
           return `<div class="code-block-container">
             <div class="code-block-header">
               <span class="code-block-title">${title}</span>
-              <span class="code-block-copy-btn">${copySvg}</span>
             </div>
             <pre><code>${escapedCode}</code></pre>
           </div>\n`;
