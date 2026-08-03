@@ -204,7 +204,7 @@
       margin: 0.5em 0;
     }
 
-    /* 표(Table) 스타일 - 배경색 제거 및 글자 굵기 일반 텍스트와 통일 */
+    /* 표(Table) 스타일 */
     .novel-capture-area table {
       width: 100%;
       border-collapse: collapse;
@@ -346,7 +346,7 @@
       </div>
       
       <div class="guide-box" style="margin-bottom: 8px;">
-        • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭(색상변경)*</b>, <b>~~취소선~~</b>, <b><u>&lt;u&gt;밑줄&lt;/u&gt;</u></b><br>
+        • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭(색상변경)*</b>, <b>~~취소선~~</b>, <b>++밑줄++</b><br>
         • <b>==텍스트==</b> : 하이라이트 글자색 변경 (드래그 추가 / 클릭 삭제)<br>
         • <b>&gt; 인용구</b>, <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
         • <b>`인라인코드`</b> 및 <b>```코드블록```</b> 지원
@@ -546,6 +546,22 @@
       }).join('');
     }
 
+    // 리스트 자동 변환 무력화 전처리 함수
+    function disarmLists(rawText) {
+      const parts = rawText.split(/(```[\s\S]*?```)/g);
+      return parts.map((part, index) => {
+        if (index % 2 === 1) return part; // 코드블록 내부는 유지
+        
+        return part.split('\n').map(line => {
+          // 줄 시작 부분의 리스트 문법(-, *, +, 숫자., - [ ]) 직전에 제로 스페이스(&#8203;) 삽입하여 리스트 파싱 차단
+          let processed = line.replace(/^(\s*)([-*+]|\d+\.)(\s+)/, '$1&#8203;$2$3');
+          // 공백을 통한 들여쓰기 보존
+          processed = processed.replace(/^( +)/, (match) => '&nbsp;'.repeat(match.length));
+          return processed;
+        }).join('\n');
+      }).join('');
+    }
+
     // 렌더링 함수
     function renderNovel() {
       let rawText = document.getElementById('inputText').value;
@@ -557,17 +573,8 @@
         return;
       }
 
-      // Marked.js 리스트(불렛, 숫자, 체크리스트) 파싱 비활성화 설정
       if (typeof marked.use === 'function') {
-        marked.use({
-          breaks: true,
-          gfm: true,
-          tokenizer: {
-            list() {
-              return false; // 리스트 구문 자체를 파싱하지 않고 일반 문단으로 처리
-            }
-          }
-        });
+        marked.use({ breaks: true, gfm: true });
       } else if (typeof marked.setOptions === 'function') {
         marked.setOptions({ breaks: true, gfm: true });
       }
@@ -588,10 +595,16 @@
       // 2. 3연속 이상 빈 줄 전처리
       rawText = preprocessBlankLines(rawText);
 
-      // 3. 커스텀 하이라이트 문법 미리 변환
+      // 3. 리스트 문법 무력화 전처리 (일반 본문 글자 및 들여쓰기로 렌더링)
+      rawText = disarmLists(rawText);
+
+      // 4. 간편 밑줄 문법 미리 변환 (++내용++ -> <u>내용</u>)
+      rawText = rawText.replace(/\+\+(.*?)\+\+/g, '<u>$1</u>');
+
+      // 5. 커스텀 하이라이트 문법 미리 변환
       rawText = rawText.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
 
-      // 4. 마크다운 파싱 수행
+      // 6. 마크다운 파싱 수행
       let parsedHtml = typeof marked.parse === 'function' ? marked.parse(rawText) : marked(rawText);
 
       novelView.innerHTML = parsedHtml;
