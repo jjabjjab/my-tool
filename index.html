@@ -372,11 +372,6 @@
     </div>
 
     <div>
-      <label style="margin-bottom: 5px;">텍스트 파일 가져오기 (.txt / .json / .md)</label>
-      <input type="file" id="fileInput" accept=".txt,.json,.md" onchange="handleFileUpload()">
-    </div>
-
-    <div>
       <label style="margin-bottom: 5px;">단어 치환 (형식: 원본->바꿀단어)</label>
       <textarea id="replaceRules" style="height: 60px;" placeholder="예시)&#10;이름->■■"></textarea>
     </div>
@@ -395,7 +390,7 @@
         • <b>`인라인코드`</b> 및 <b>```제목``` 코드블록</b> 지원
       </div>
       
-      <textarea id="inputText" style="min-height: 50vh; flex: 1;" placeholder="여기에 소설/마크다운 텍스트를 입력하거나 파일을 업로드하세요..." oninput="renderNovel()"></textarea>
+      <textarea id="inputText" style="min-height: 50vh; flex: 1;" placeholder="여기에 소설/마크다운 텍스트를 입력하세요..." oninput="renderNovel()"></textarea>
     </div>
 
     <button class="btn btn-success" onclick="downloadPNG()">고화질 PNG 다운로드</button>
@@ -648,29 +643,6 @@
     function changePaddingH(val) {
       document.getElementById('novelView').style.setProperty('--novel-padding-h', val + 'px');
       document.getElementById('paddingHValue').innerText = val + 'px';
-    }
-
-    function handleFileUpload() {
-      const fileInput = document.getElementById('fileInput');
-      const file = fileInput.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const contents = e.target.result;
-        if (file.name.endsWith('.json')) {
-          try {
-            const jsonObj = JSON.parse(contents);
-            document.getElementById('inputText').value = jsonObj.content || jsonObj.text || JSON.stringify(jsonObj, null, 2);
-          } catch (err) {
-            alert('올바른 JSON 형식이 아닙니다.');
-          }
-        } else {
-          document.getElementById('inputText').value = contents;
-        }
-        renderNovel();
-      };
-      reader.readAsText(file, 'UTF-8');
     }
 
     function preprocessBlankLines(rawText) {
