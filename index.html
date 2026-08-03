@@ -713,7 +713,7 @@
         return;
       }
 
-      // 커스텀 코드블록 렌더러 정의 (복사 아이콘 제거)
+      // 커스텀 코드블록 렌더러 정의
       const customRenderer = new marked.Renderer();
       customRenderer.code = function(code, infostring, isEscaped) {
         const title = (infostring || '').trim();
@@ -814,8 +814,19 @@
           });
         }
       }).then(canvas => {
+        // 날짜 및 시간 기반 저장 파일명 생성 (캡처_YYYYMMDD_HHMMSS)
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        const fileName = `캡처_${year}${month}${day}_${hours}${minutes}${seconds}.png`;
+
         const link = document.createElement('a');
-        link.download = '웹소설_캡처_' + new Date().getTime() + '.png';
+        link.download = fileName;
         link.href = canvas.toDataURL('image/png');
         link.click();
       }).catch(err => {
