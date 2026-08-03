@@ -97,6 +97,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      flex-shrink: 0;
     }
 
     .card-title {
@@ -145,10 +146,18 @@
       color: var(--text-primary);
       outline: none;
       transition: border-color 0.15s, background-color 0.15s;
+      font-family: inherit;
     }
     input[type="text"]:focus, textarea:focus {
       border-color: var(--accent-color);
       background-color: #ffffff;
+    }
+
+    /* 텍스트에어리어 조절 가시성 개선 */
+    textarea {
+      resize: vertical;
+      box-sizing: border-box;
+      display: block;
     }
     
     .file-input-wrapper {
@@ -210,28 +219,27 @@
       box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--accent-color);
     }
 
-    /* 접이식 마크다운 가이드 */
+    /* 접이식 마크다운 가이드 (잘림 및 열림 문제 수정) */
     details.guide-details {
       background: #f8fafc;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       font-size: 12px;
       color: var(--text-secondary);
-      overflow: hidden;
+      width: 100%;
     }
     details.guide-details summary {
-      padding: 8px 12px;
+      padding: 10px 12px;
       font-weight: 600;
       cursor: pointer;
       user-select: none;
       outline: none;
       color: var(--accent-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      line-height: 1.4;
+      display: list-item;
     }
     .guide-content {
-      padding: 8px 12px 10px 12px;
+      padding: 10px 12px;
       border-top: 1px solid var(--card-border);
       line-height: 1.6;
     }
@@ -250,6 +258,7 @@
       justify-content: center;
       align-items: center;
       gap: 6px;
+      flex-shrink: 0;
     }
     .btn-download {
       background: linear-gradient(135deg, #22c55e, #16a34a);
@@ -504,15 +513,19 @@
     </div>
 
     <!-- 4. 단어 치환 & 본문 입력 카드 -->
-    <div class="card-section" style="flex: 1; min-height: 320px;">
+    <div class="card-section">
       <div class="card-title">
         <span>본문 입력 & 편집</span>
         <button type="button" class="btn-text-only" onclick="clearAllHighlights()">하이라이트 전체 제거</button>
       </div>
 
-      <input type="text" id="replaceRules" placeholder="단어 자동 치환 (예: 원본->바꿀단어)" style="font-size: 12px;">
+      <!-- 수정 1 & 2: 줄바꿈 지원 + 크기 조절 가능한 단어 치환 textarea -->
+      <div>
+        <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">단어 자동 치환 (형식: 원본->바꿀단어)</label>
+        <textarea id="replaceRules" style="height: 65px; min-height: 45px; resize: vertical;" placeholder="예시)&#10;이름->■■&#10;단어->바꿀단어"></textarea>
+      </div>
 
-      <!-- 마크다운 사용 설명 접이식 뷰 -->
+      <!-- 수정 3: 잘림/안열림 현상이 해결된 마크다운 가이드 -->
       <details class="guide-details">
         <summary>💡 사용 가능한 마크다운 서식 보기</summary>
         <div class="guide-content">
@@ -523,7 +536,11 @@
         </div>
       </details>
       
-      <textarea id="inputText" style="flex: 1; min-height: 180px; resize: vertical;" placeholder="소설 본문이나 마크다운 텍스트를 입력하세요..." oninput="renderNovel()"></textarea>
+      <!-- 수정 4: 기본 크기 확대(300px) 및 상하 자유 크기 조절 가능한 본문 입력창 -->
+      <div>
+        <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">소설 본문 입력</label>
+        <textarea id="inputText" style="height: 320px; min-height: 180px; resize: vertical;" placeholder="소설 본문이나 마크다운 텍스트를 입력하세요..." oninput="renderNovel()"></textarea>
+      </div>
     </div>
 
     <!-- 고화질 다운로드 버튼 -->
