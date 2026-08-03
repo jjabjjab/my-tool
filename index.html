@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>웹소설 스타일 캡처 생성기</title>
+  <!-- 인기 웹 폰트 CDN 로드 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Maru+Buri:wght@400;700&family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
   <!-- 고화질 이미지 저장을 위한 라이브러리 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- Marked.js (주 CDN 실패 시 예비 CDN 자동 로드) -->
@@ -24,10 +28,11 @@
       --novel-code-bg: #242423; 
       --novel-bar-color: #3d3d3c; 
       
-      /* 기본 행간 및 여백 설정 */
+      /* 기본 행간, 여백 및 폰트 설정 */
       --novel-line-height: 1.85;
       --novel-padding-v: 40px;
       --novel-padding-h: 40px;
+      --novel-font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     }
 
     [data-theme="light"] {
@@ -53,7 +58,8 @@
     .control-panel { width: 400px; padding: 20px; background: var(--bg-control); color: var(--text-control); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
     h2 { font-size: 18px; margin-bottom: 5px; }
     label { font-size: 13px; font-weight: bold; display: block; }
-    textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: vertical; }
+    textarea, input[type="text"], select { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: vertical; }
+    select { cursor: pointer; background: white; }
     
     input[type="range"] { width: 100%; margin-top: 5px; cursor: pointer; }
 
@@ -100,6 +106,7 @@
       line-height: var(--novel-line-height); 
       letter-spacing: -0.02em;
       text-align: left; 
+      font-family: var(--novel-font-family);
     }
 
     /* 문단 간격 및 행간 설정 */
@@ -281,6 +288,27 @@
       </div>
     </div>
 
+    <!-- 폰트 설정 섹션 -->
+    <div>
+      <label style="margin-bottom: 5px;">폰트 설정</label>
+      <!-- 1. 추천 웹 폰트 프리셋 -->
+      <select id="fontPreset" onchange="changeFontPreset(this.value)" style="margin-bottom: 6px;">
+        <option value="default">시스템 기본 고딕 (Sans-serif)</option>
+        <option value="gowun-batang">고운바탕 (Gowun Batang)</option>
+        <option value="nanum-myeongjo">나눔명조 (Nanum Myeongjo)</option>
+        <option value="maru-buri">마루 부리 (Maru Buri)</option>
+        <option value="noto-serif-kr">Noto Serif KR (명조계열)</option>
+        <option value="noto-sans-kr">Noto Sans KR (고딕계열)</option>
+      </select>
+      
+      <!-- 2. PC 설치 로컬 폰트 직접 입력 -->
+      <input type="text" id="customFontInput" placeholder="로컬 폰트명 직접 입력 (예: KoPubWorld바탕)" oninput="applyCustomFontName(this.value)" style="margin-bottom: 6px;">
+      
+      <!-- 3. 커스텀 폰트 파일 업로드 -->
+      <div style="font-size: 11px; color: #666; margin-bottom: 3px;">또는 폰트 파일 직접 업로드 (.ttf / .otf / .woff)</div>
+      <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" onchange="handleFontFileUpload()" style="font-size: 12px; padding: 6px;">
+    </div>
+
     <!-- 커스텀 팔레트 섹션 -->
     <div>
       <div class="flex-row" style="justify-content: space-between; margin-bottom: 6px;">
@@ -376,6 +404,52 @@
       initPalette();
       renderNovel();
     };
+
+    // 1. 웹 폰트 프리셋 변경 함수
+    function changeFontPreset(val) {
+      document.getElementById('customFontInput').value = '';
+      let fontFamily = '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+      
+      if (val === 'gowun-batang') fontFamily = '"Gowun Batang", serif';
+      else if (val === 'nanum-myeongjo') fontFamily = '"Nanum Myeongjo", serif';
+      else if (val === 'maru-buri') fontFamily = '"Maru Buri", serif';
+      else if (val === 'noto-serif-kr') fontFamily = '"Noto Serif KR", serif';
+      else if (val === 'noto-sans-kr') fontFamily = '"Noto Sans KR", sans-serif';
+
+      document.getElementById('novelView').style.setProperty('--novel-font-family', fontFamily);
+    }
+
+    // 2. 로컬 폰트 직접 입력 함수
+    function applyCustomFontName(fontName) {
+      if (!fontName.trim()) {
+        changeFontPreset(document.getElementById('fontPreset').value);
+        return;
+      }
+      document.getElementById('novelView').style.setProperty('--novel-font-family', `"${fontName.trim()}", sans-serif`);
+    }
+
+    // 3. 커스텀 폰트 파일(.ttf/.otf/.woff) 업로드 함수
+    function handleFontFileUpload() {
+      const fileInput = document.getElementById('fontFileInput');
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const fontData = e.target.result;
+        const fontName = 'CustomUploadedFont_' + Date.now();
+        const fontFace = new FontFace(fontName, fontData);
+
+        fontFace.load().then(function(loadedFace) {
+          document.fonts.add(loadedFace);
+          document.getElementById('novelView').style.setProperty('--novel-font-family', `"${fontName}", sans-serif`);
+          document.getElementById('customFontInput').value = file.name.replace(/\.[^/.]+$/, "");
+        }).catch(function(err) {
+          alert('폰트 파일을 로드하는 중 오류가 발생했습니다: ' + err);
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
 
     function initPalette() {
       const saved = localStorage.getItem('webnovel_palette_colors');
@@ -550,12 +624,10 @@
     function disarmLists(rawText) {
       const parts = rawText.split(/(```[\s\S]*?```)/g);
       return parts.map((part, index) => {
-        if (index % 2 === 1) return part; // 코드블록 내부는 유지
+        if (index % 2 === 1) return part; 
         
         return part.split('\n').map(line => {
-          // 줄 시작 부분의 리스트 문법(-, *, +, 숫자., - [ ]) 직전에 제로 스페이스(&#8203;) 삽입하여 리스트 파싱 차단
           let processed = line.replace(/^(\s*)([-*+]|\d+\.)(\s+)/, '$1&#8203;$2$3');
-          // 공백을 통한 들여쓰기 보존
           processed = processed.replace(/^( +)/, (match) => '&nbsp;'.repeat(match.length));
           return processed;
         }).join('\n');
@@ -595,7 +667,7 @@
       // 2. 3연속 이상 빈 줄 전처리
       rawText = preprocessBlankLines(rawText);
 
-      // 3. 리스트 문법 무력화 전처리 (일반 본문 글자 및 들여쓰기로 렌더링)
+      // 3. 리스트 문법 무력화 전처리
       rawText = disarmLists(rawText);
 
       // 4. 간편 밑줄 문법 미리 변환 (++내용++ -> <u>내용</u>)
