@@ -420,7 +420,7 @@
       font-family: inherit !important;
     }
 
-    /* 하이라이트 색상 상속 스타일 */
+    /* 하이라이트 내 내부 요소를 포함한 색상 상속 스타일 */
     .novel-capture-area .highlight,
     .novel-capture-area .highlight * { 
       background-color: transparent !important;
@@ -557,15 +557,15 @@
     const DEFAULT_PALETTE = ['#ffeb3b', '#00f2fe', '#ff758c', '#ff9f43', '#a8ff78', '#b45309'];
     let currentPalette = [];
     let selectedChipIdx = 0;
-    let currentSelectionContext = null; // 맥락 정보 저장 변수
+    let currentSelectionContext = null;
 
     window.onload = function() {
       document.getElementById('replaceRules').value = "";
       document.getElementById('inputText').value = "";
       initPalette();
       initFont();
-      initLayout(); // 새로고침 시 레이아웃 저장값 복원
-      initTheme();  // 새로고침 시 테마 저장값 복원
+      initLayout();
+      initTheme();
       
       ensureMarkedLoaded().then(() => {
         renderNovel();
@@ -988,7 +988,7 @@
     const floatBtn = document.getElementById('floatingHighlightBtn');
     const novelView = document.getElementById('novelView');
 
-    /* [맥락 추적 1단계] 프리뷰 드래그 시 선택 구역과 앞뒤 20자 Context 수집 */
+    /* 프리뷰 드래그 시 맥락 수집 */
     novelView.addEventListener('mouseup', function(e) {
       setTimeout(() => {
         const selection = window.getSelection();
@@ -1020,7 +1020,6 @@
 
           const endOffset = startOffset + selectedText.length;
 
-          // 선택 텍스트 앞뒤 20글자 맥락 추출
           const prefixText = blockText.substring(Math.max(0, startOffset - 20), startOffset);
           const suffixText = blockText.substring(endOffset, Math.min(blockText.length, endOffset + 20));
 
@@ -1043,7 +1042,7 @@
       }
     });
 
-    /* 서식 기호 및 치환 규칙 허용 패턴 생성기 */
+    /* 패턴 생성기 */
     function buildFlexPattern(str, rules = []) {
       if (!str) return '';
 
@@ -1096,7 +1095,7 @@
       return pattern;
     }
 
-    /* [맥락 추적 2단계] 앞뒤 맥락으로 원본 인덱스를 정밀 추적하여 하이라이트 적용 */
+    /* 하이라이트 추가 클릭 이벤트 (마크다운 기호 바깥으로 == 위치 자동 보정) */
     floatBtn.addEventListener('click', function() {
       if (!currentSelectionContext || !currentSelectionContext.selectedText) return;
 
@@ -1104,7 +1103,6 @@
       let currentContent = textarea.value;
       const replaceRulesStr = document.getElementById('replaceRules').value;
 
-      // 1. 단어 치환 규칙 파싱
       const rules = [];
       if (replaceRulesStr) {
         replaceRulesStr.split('\n').forEach(rule => {
@@ -1126,7 +1124,6 @@
       const targetPat = buildFlexPattern(selectedText, rules);
       const suffixPat = buildFlexPattern(suffix, rules);
 
-      // 탐색 레이어 (전체 맥락 매칭 -> 부분 맥락 -> 단독 타겟)
       const attempts = [
         new RegExp(`(${prefixPat})(${targetPat})(${suffixPat})`),
         new RegExp(`()(${targetPat})(${suffixPat})`),
@@ -1145,13 +1142,26 @@
       }
 
       if (match) {
-        const prefixMatchLen = match[1] ? match[1].length : 0;
-        const targetMatch = match[2];
-        const matchIndex = match.index + prefixMatchLen;
+        let start = match.index + (match[1] ? match[1].length : 0);
+        let targetMatch = match[2];
+        let end = start + targetMatch.length;
 
-        const before = currentContent.slice(0, matchIndex);
-        const cleanedTarget = targetMatch.replace(/==/g, '');
-        const after = currentContent.slice(matchIndex + targetMatch.length);
+        // 마크다운 서식 기호(*, _, ~, +)와 교차해서 태그가 꼬이는 현상 방지
+        // 시작점이 마크다운 기호 직후라면 기호 앞까지 시작 위치 확장
+        while (start > 0 && /[\*_~+]/.test(currentContent[start - 1])) {
+          start--;
+        }
+
+        // 종료점이 마크다운 기호 직전이라면 기호 뒤까지 종료 위치 확장
+        while (end < currentContent.length && /[\*_~+]/.test(currentContent[end])) {
+          end++;
+        }
+
+        const before = currentContent.slice(0, start);
+        const targetWithMd = currentContent.slice(start, end);
+        const after = currentContent.slice(end);
+
+        const cleanedTarget = targetWithMd.replace(/==/g, '');
 
         textarea.value = before + '==' + cleanedTarget + '==' + after;
         renderNovel();
