@@ -6,28 +6,31 @@
   <title>웹소설 스타일 캡처 생성기</title>
   <!-- 고화질 이미지 저장을 위한 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <!-- Marked.js (더 빠른 jsDelivr CDN 및 다중 예비 CDN 적용) -->
+  <!-- Marked.js (jsDelivr CDN 및 예비 CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js" 
           onerror="this.onerror=null; this.src='https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js';"></script>
   <style>
-    /* 기본 레이아웃 변수 설정 (라이트/다크 모드 대응) */
+    /* 기본 테마 및 레이아웃 변수 */
     :root {
-      --bg-control: #f8f9fa;
-      --text-control: #333;
-      --border-color: #ced4da;
+      --panel-bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-color: #2563eb;
+      --accent-hover: #1d4ed8;
       
-      /* 다크모드 색상 설정 */
+      /* 다크모드 노블 색상 */
       --novel-bg: #141413;
       --novel-text: #FAFAFA;        
       --novel-em-text: #85837E;
       --novel-highlight-text: #ffeb3b; 
       --novel-code-bg: #242423; 
       --novel-bar-color: #3d3d3c; 
-
-      /* 코드블록 변수 */
       --novel-code-box-bg: rgba(255, 255, 255, 0.04);
       --novel-code-header-bg: rgba(255, 255, 255, 0.08);
-      
+
       /* 기본 행간, 여백 및 폰트 설정 */
       --novel-line-height: 1.85;
       --novel-padding-v: 40px;
@@ -36,15 +39,12 @@
     }
 
     [data-theme="light"] {
-      /* 라이트모드 색상 설정 */
       --novel-bg: #FFFFFF;
       --novel-text: #09090B;        
       --novel-em-text: #85837E;
       --novel-highlight-text: #b45309; 
       --novel-code-bg: #f0f0f0; 
       --novel-bar-color: #d1d1d1;        
-
-      /* 코드블록 변수 */
       --novel-code-box-bg: rgba(0, 0, 0, 0.02);
       --novel-code-header-bg: rgba(0, 0, 0, 0.06);
     }
@@ -52,51 +52,240 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; 
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; 
       display: flex; 
       height: 100vh; 
-      background: #e9ecef; 
+      background: #334155; 
+      color: var(--text-primary);
     }
 
-    /* 컨트롤 패널 스타일 (좌측) */
-    .control-panel { width: 400px; padding: 20px; background: var(--bg-control); color: var(--text-control); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
-    h2 { font-size: 18px; margin-bottom: 5px; }
-    label { font-size: 13px; font-weight: bold; display: block; }
-    textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; font-size: 14px; resize: vertical; }
+    /* 좌측 패널 전반 스티키 레이아웃 */
+    .control-panel { 
+      width: 420px; 
+      padding: 24px 20px; 
+      background: var(--panel-bg); 
+      border-right: 1px solid var(--card-border); 
+      display: flex; 
+      flex-direction: column; 
+      gap: 16px; 
+      overflow-y: auto; 
+    }
+
+    /* 헤더 스타일 */
+    .panel-header {
+      margin-bottom: 4px;
+    }
+    .panel-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+    .panel-header p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* 카테고리 카드 컨테이너 */
+    .card-section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 세그먼트 버튼 컨트롤 */
+    .segmented-control {
+      display: flex;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 8px;
+      gap: 2px;
+    }
+    .segmented-btn {
+      flex: 1;
+      padding: 7px 0;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .segmented-btn.active {
+      background: #ffffff;
+      color: var(--accent-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* 입력 폼 공통 스타일 */
+    input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid var(--card-border);
+      background-color: #f8fafc;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--accent-color);
+      background-color: #ffffff;
+    }
     
-    input[type="range"] { width: 100%; margin-top: 5px; cursor: pointer; }
+    .file-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-input-wrapper input[type="file"] {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
 
-    .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; }
-    .btn-primary { background: #007bff; color: white; }
-    .btn-primary:hover { background: #0056b3; }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-secondary:hover { background: #5a6268; }
-    .btn-success { background: #28a745; color: white; margin-top: auto; }
-    .btn-success:hover { background: #218838; }
-    .flex-row { display: flex; gap: 10px; align-items: center; }
-    .guide-box { background: #e2e3e5; padding: 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; color: #383d41; }
+    /* 슬라이더 스타일 */
+    .range-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .range-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .badge-val {
+      color: var(--accent-color);
+      background: #eff6ff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      outline: none;
+      accent-color: var(--accent-color);
+      cursor: pointer;
+    }
 
-    /* 커스텀 팔레트 칩 스타일 */
+    /* 커스텀 팔레트 칩 */
     .palette-chip {
       flex: 1;
-      height: 28px;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      border-radius: 4px;
+      height: 30px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: transform 0.1s, outline 0.1s;
+      transition: transform 0.15s, box-shadow 0.15s;
       position: relative;
       user-select: none;
+      border: 1px solid rgba(0, 0, 0, 0.1);
     }
     .palette-chip:hover {
-      transform: scale(1.05);
+      transform: translateY(-1px);
     }
     .palette-chip.active {
-      outline: 2px solid #007bff;
-      outline-offset: 1px;
+      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--accent-color);
     }
 
-    /* 프리뷰 영역 스타일 (우측) */
-    .preview-container { flex: 1; display: flex; justify-content: center; align-items: start; padding: 20px; overflow-y: auto; background: #555; position: relative; }
+    /* 접이식 마크다운 가이드 */
+    details.guide-details {
+      background: #f8fafc;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      overflow: hidden;
+    }
+    details.guide-details summary {
+      padding: 8px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+      color: var(--accent-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .guide-content {
+      padding: 8px 12px 10px 12px;
+      border-top: 1px solid var(--card-border);
+      line-height: 1.6;
+    }
+
+    /* 버튼 스타일 */
+    .btn-action {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 15px;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-download {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+      margin-top: 4px;
+    }
+    .btn-download:hover {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(22, 163, 74, 0.3);
+    }
+
+    .btn-text-only {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .btn-text-only:hover {
+      color: #ef4444;
+    }
+
+    /* 우측 프리뷰 영역 */
+    .preview-container { 
+      flex: 1; 
+      display: flex; 
+      justify-content: center; 
+      align-items: flex-start; 
+      padding: 30px; 
+      overflow-y: auto; 
+      background: #1e293b; 
+      position: relative; 
+    }
     
     /* 실제 웹소설 캡처 구역 */
     .novel-capture-area {
@@ -110,9 +299,10 @@
       letter-spacing: -0.02em;
       text-align: left; 
       font-family: var(--novel-font-family);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      border-radius: 2px;
     }
 
-    /* 문단 간격 및 행간 설정 */
     .novel-capture-area p {
       word-break: keep-all;
       overflow-wrap: break-word;
@@ -120,103 +310,48 @@
       color: inherit;
       line-height: var(--novel-line-height);
     }
-
-    .novel-capture-area p:last-child {
-      margin-bottom: 0;
-    }
-
-    /* 3번 이상 엔터 입력 시 사용되는 빈 줄 높이 */
+    .novel-capture-area p:last-child { margin-bottom: 0; }
     .novel-capture-area p.empty-line {
       margin: 0 0 1em 0;
       min-height: calc(1em * var(--novel-line-height));
     }
 
-    /* 헤더 스타일링 */
     .novel-capture-area h1, .novel-capture-area h2, .novel-capture-area h3,
     .novel-capture-area h4, .novel-capture-area h5, .novel-capture-area h6 {
       color: inherit;
       margin-top: 0.8em;
       margin-bottom: 0.4em;
       line-height: 1.3;
-      opacity: 1;
       font-family: inherit;
     }
     .novel-capture-area h1 { font-size: 1.8em; }
     .novel-capture-area h2 { font-size: 1.5em; }
     .novel-capture-area h3 { font-size: 1.3em; }
-    .novel-capture-area h4 { font-size: 1.15em; }
-    .novel-capture-area h5 { font-size: 1em; }
-    .novel-capture-area h6 { font-size: 0.85em; }
 
-    /* 블록 요소 상하 여백 */
-    .novel-capture-area table,
-    .novel-capture-area .code-block-container {
+    .novel-capture-area table, .novel-capture-area .code-block-container {
       margin-top: 0.8em;
       margin-bottom: 1em;
     }
 
-    /* 구분선 */
     .novel-capture-area hr {
       border: none;
       border-top: 1px solid var(--novel-bar-color);
       margin: 1.5em 0;
     }
 
-    /* 서식 정의 */
-    .novel-capture-area strong { 
-      color: inherit; 
-      font-weight: 700; 
-    }
-    
-    .novel-capture-area em {
-      font-style: normal !important;
-      color: var(--novel-em-text) !important;
-    }
+    .novel-capture-area strong { color: inherit; font-weight: 700; }
+    .novel-capture-area em { font-style: normal !important; color: var(--novel-em-text) !important; }
+    .novel-capture-area del { color: inherit; text-decoration: line-through; }
+    .novel-capture-area u { color: inherit; text-decoration: underline; }
 
-    .novel-capture-area del {
-      color: inherit;
-      text-decoration: line-through;
-      opacity: 1;
-    }
-
-    .novel-capture-area u {
-      color: inherit;
-      text-decoration: underline;
-    }
-
-    .novel-capture-area .low-opacity { 
-      color: inherit;
-    }
-    
-    /* 인용구(blockquote) 스타일 */
     .novel-capture-area blockquote { 
       border-left: 4px solid var(--novel-bar-color); 
       padding-left: 15px; 
       margin: 0.8em 0 1em 0;
       color: inherit;
-      opacity: 1;
       font-family: inherit;
     }
-    .novel-capture-area blockquote p {
-      margin-bottom: 0.5em;
-    }
-    .novel-capture-area blockquote p:last-child {
-      margin-bottom: 0;
-    }
 
-    /* 링크 및 이미지 */
-    .novel-capture-area a {
-      color: inherit;
-      text-decoration: underline;
-    }
-    .novel-capture-area img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 4px;
-      margin: 0.5em 0;
-    }
-
-    /* 표(Table) 스타일 */
     .novel-capture-area table {
       width: 100%;
       border-collapse: collapse;
@@ -233,11 +368,7 @@
       font-weight: normal !important;
       font-family: inherit;
     }
-    .novel-capture-area th {
-      font-weight: normal !important;
-    }
 
-    /* 코드블록 전용 커스텀 컨테이너 */
     .code-block-container {
       background-color: var(--novel-code-box-bg);
       border: 1px solid var(--novel-bar-color);
@@ -254,20 +385,15 @@
       font-size: 13px;
       color: var(--novel-em-text);
     }
-    .code-block-title {
-      font-weight: 500;
-      opacity: 0.85;
-    }
+    .code-block-title { font-weight: 500; opacity: 0.85; }
     .novel-capture-area pre {
       background-color: transparent !important;
       padding: 12px 14px;
       margin: 0;
-      border-radius: 0;
       font-family: inherit !important;
       color: inherit;
       white-space: pre-wrap;
       word-break: break-all;
-      overflow-wrap: break-word;
     }
     .novel-capture-area :not(pre) > code {
       font-family: inherit !important;
@@ -285,115 +411,125 @@
       color: inherit;
       font-family: inherit !important;
     }
-    
-    /* 하이라이트 스타일 */
+
     .novel-capture-area .highlight { 
       background-color: transparent !important;
       color: var(--novel-highlight-text) !important; 
       opacity: 1 !important; 
       padding: 0;
-      border-radius: 0;
       cursor: pointer; 
-      transition: opacity 0.15s, color 0.15s;
+      transition: opacity 0.15s;
     }
-    .novel-capture-area .highlight:hover {
-      opacity: 0.7 !important;
-    }
+    .novel-capture-area .highlight:hover { opacity: 0.7 !important; }
   </style>
 </head>
 <body>
 
   <!-- 좌측 컨트롤 패널 -->
   <div class="control-panel">
-    <h2>소설 캡처 설정</h2>
+    <div class="panel-header">
+      <h2>소설 캡처 스튜디오</h2>
+      <p>텍스트를 커스텀 이미지로 고화질 저장합니다.</p>
+    </div>
     
-    <div>
-      <label style="margin-bottom: 5px;">테마 선택</label>
-      <div class="flex-row">
-        <button class="btn btn-primary" onclick="setTheme('dark')">다크 모드</button>
-        <button class="btn btn-secondary" onclick="setTheme('light')">라이트 모드</button>
-      </div>
-    </div>
-
-    <!-- 로컬 폰트 전용 설정 섹션 -->
-    <div>
-      <label style="margin-bottom: 5px;">폰트 설정 (로컬 폰트)</label>
-      <input type="text" id="customFontInput" placeholder="PC 폰트명 입력 (예: KoPubWorld바탕, 리디바탕)" oninput="applyLocalFontName(this.value)" style="margin-bottom: 6px;">
+    <!-- 1. 테마 & 폰트 카드 -->
+    <div class="card-section">
+      <div class="card-title">테마 및 폰트</div>
       
-      <div style="font-size: 11px; color: #666; margin-bottom: 3px;">또는 폰트 파일 직접 업로드 (.ttf / .otf / .woff)</div>
-      <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" onchange="handleFontFileUpload()" style="font-size: 12px; padding: 6px;">
-    </div>
-
-    <!-- 커스텀 팔레트 섹션 -->
-    <div>
-      <div class="flex-row" style="justify-content: space-between; margin-bottom: 6px;">
-        <label>하이라이트 팔레트 <span style="font-weight: normal; font-size: 11px; color: #666;">(클릭: 선택 / 더블클릭: 변경)</span></label>
-        <button type="button" onclick="resetPalette()" style="font-size: 11px; padding: 2px 8px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;">초기화</button>
+      <!-- 세그먼트 테마 선택 -->
+      <div class="segmented-control" id="themeSegment">
+        <button type="button" class="segmented-btn active" id="btnThemeDark" onclick="setTheme('dark')">다크 모드</button>
+        <button type="button" class="segmented-btn" id="btnThemeLight" onclick="setTheme('light')">라이트 모드</button>
       </div>
-      <div class="flex-row" style="gap: 5px;" id="paletteContainer"></div>
-    </div>
 
-    <!-- 행간 조절 버튼 그룹 -->
-    <div>
-      <label style="margin-bottom: 5px;">행간(줄 간격) 조절</label>
-      <div class="flex-row" id="lhGroup">
-        <button class="btn btn-lh btn-secondary" style="padding: 8px 0;" onclick="setLineHeight('1.55', this)">1.55</button>
-        <button class="btn btn-lh btn-secondary" style="padding: 8px 0;" onclick="setLineHeight('1.7', this)">1.7</button>
-        <button class="btn btn-lh btn-primary" style="padding: 8px 0;" onclick="setLineHeight('1.85', this)">1.85</button>
-        <button class="btn btn-lh btn-secondary" style="padding: 8px 0;" onclick="setLineHeight('2.0', this)">2.0</button>
+      <!-- 로컬 폰트 설정 -->
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <input type="text" id="customFontInput" placeholder="PC 폰트명 입력 (예: KoPubWorld바탕, 리디바탕)" oninput="applyLocalFontName(this.value)">
+        <div class="file-input-wrapper">
+          <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" onchange="handleFontFileUpload()">
+        </div>
       </div>
     </div>
 
-    <!-- 캡처 영역 폭(너비) 조절 -->
-    <div>
-      <div class="flex-row" style="justify-content: space-between;">
-        <label>캡처 영역 폭(너비) 조절</label>
-        <span id="widthValue" style="font-size: 13px; font-weight: bold; color: #007bff;">500px</span>
+    <!-- 2. 하이라이트 팔레트 카드 -->
+    <div class="card-section">
+      <div class="card-title">
+        <span>하이라이트 팔레트</span>
+        <button type="button" class="btn-text-only" onclick="resetPalette()">초기화</button>
       </div>
-      <input type="range" id="widthSlider" min="400" max="1200" step="10" value="500" oninput="changeWidth(this.value)">
+      <div class="flex-row" style="display: flex; gap: 6px;" id="paletteContainer"></div>
     </div>
 
-    <!-- 상하 여백 조절 -->
-    <div>
-      <div class="flex-row" style="justify-content: space-between;">
-        <label>상하 여백 조절</label>
-        <span id="paddingVValue" style="font-size: 13px; font-weight: bold; color: #007bff;">40px</span>
+    <!-- 3. 레이아웃 카드 -->
+    <div class="card-section">
+      <div class="card-title">레이아웃 설정</div>
+
+      <!-- 행간 세그먼트 -->
+      <div class="range-group">
+        <div class="range-header"><span>줄 간격 (행간)</span></div>
+        <div class="segmented-control" id="lhSegment">
+          <button type="button" class="segmented-btn" onclick="setLineHeight('1.55', this)">1.55</button>
+          <button type="button" class="segmented-btn" onclick="setLineHeight('1.7', this)">1.7</button>
+          <button type="button" class="segmented-btn active" onclick="setLineHeight('1.85', this)">1.85</button>
+          <button type="button" class="segmented-btn" onclick="setLineHeight('2.0', this)">2.0</button>
+        </div>
       </div>
-      <input type="range" id="paddingVSlider" min="0" max="100" step="5" value="40" oninput="changePaddingV(this.value)">
+
+      <!-- 폭 조절 -->
+      <div class="range-group">
+        <div class="range-header">
+          <span>캡처 너비</span>
+          <span class="badge-val" id="widthValue">500px</span>
+        </div>
+        <input type="range" id="widthSlider" min="400" max="1200" step="10" value="500" oninput="changeWidth(this.value)">
+      </div>
+
+      <!-- 상하 여백 -->
+      <div class="range-group">
+        <div class="range-header">
+          <span>상하 여백</span>
+          <span class="badge-val" id="paddingVValue">40px</span>
+        </div>
+        <input type="range" id="paddingVSlider" min="0" max="100" step="5" value="40" oninput="changePaddingV(this.value)">
+      </div>
+
+      <!-- 좌우 여백 -->
+      <div class="range-group">
+        <div class="range-header">
+          <span>좌우 여백</span>
+          <span class="badge-val" id="paddingHValue">40px</span>
+        </div>
+        <input type="range" id="paddingHSlider" min="0" max="100" step="5" value="40" oninput="changePaddingH(this.value)">
+      </div>
     </div>
 
-    <!-- 좌우 여백 조절 -->
-    <div>
-      <div class="flex-row" style="justify-content: space-between;">
-        <label>좌우 여백 조절</label>
-        <span id="paddingHValue" style="font-size: 13px; font-weight: bold; color: #007bff;">40px</span>
+    <!-- 4. 단어 치환 & 본문 입력 카드 -->
+    <div class="card-section" style="flex: 1; min-height: 320px;">
+      <div class="card-title">
+        <span>본문 입력 & 편집</span>
+        <button type="button" class="btn-text-only" onclick="clearAllHighlights()">하이라이트 전체 제거</button>
       </div>
-      <input type="range" id="paddingHSlider" min="0" max="100" step="5" value="40" oninput="changePaddingH(this.value)">
-    </div>
 
-    <div>
-      <label style="margin-bottom: 5px;">단어 치환 (형식: 원본->바꿀단어)</label>
-      <textarea id="replaceRules" style="height: 60px;" placeholder="예시)&#10;이름->■■"></textarea>
-    </div>
+      <input type="text" id="replaceRules" placeholder="단어 자동 치환 (예: 원본->바꿀단어)" style="font-size: 12px;">
 
-    <!-- 소설 본문 입력 구역 -->
-    <div style="display: flex; flex-direction: column; flex: 1;">
-      <div class="flex-row" style="justify-content: space-between; margin-bottom: 5px; align-items: center;">
-        <label>소설 본문 입력</label>
-        <button class="btn" style="width: auto; padding: 4px 10px; font-size: 11px; background: #dc3545; color: white;" onclick="clearAllHighlights()">하이라이트 전체 삭제</button>
-      </div>
+      <!-- 마크다운 사용 설명 접이식 뷰 -->
+      <details class="guide-details">
+        <summary>💡 사용 가능한 마크다운 서식 보기</summary>
+        <div class="guide-content">
+          • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭*</b>, <b>~~취소선~~</b>, <b>++밑줄++</b><br>
+          • <b>==텍스트==</b> : 하이라이트 (드래그 추가 / 클릭 삭제)<br>
+          • <b>&gt; 인용구</b>, <b>| 표 | 작성 |</b>, <b>`인라인코드`</b><br>
+          • <b>```제목```</b> : 제목바를 포함한 코드블록
+        </div>
+      </details>
       
-      <div class="guide-box" style="margin-bottom: 8px;">
-        • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭(색상변경)*</b>, <b>~~취소선~~</b>, <b>++밑줄++</b><br>
-        • <b>==텍스트==</b> : 하이라이트 글자색 변경 (드래그 추가 / 클릭 삭제)<br>
-        • <b>&gt; 인용구</b>, <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
-        • <b>`인라인코드`</b> 및 <b>```제목``` 코드블록</b> 지원
-      </div>
-      
-      <textarea id="inputText" style="min-height: 50vh; flex: 1;" placeholder="여기에 소설/마크다운 텍스트를 입력하세요..." oninput="renderNovel()"></textarea>
+      <textarea id="inputText" style="flex: 1; min-height: 180px; resize: vertical;" placeholder="소설 본문이나 마크다운 텍스트를 입력하세요..." oninput="renderNovel()"></textarea>
     </div>
 
-    <button class="btn btn-success" onclick="downloadPNG()">고화질 PNG 다운로드</button>
+    <!-- 고화질 다운로드 버튼 -->
+    <button class="btn-action btn-download" onclick="downloadPNG()">
+      📸 고화질 PNG 다운로드
+    </button>
   </div>
 
   <!-- 우측 실시간 프리뷰 영역 -->
@@ -401,7 +537,7 @@
     <div class="novel-capture-area" id="novelView" data-theme="dark"></div>
   </div>
 
-  <button id="floatingHighlightBtn" style="position: absolute; display: none; background: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 9999;">✍️ 하이라이트 추가</button>
+  <button id="floatingHighlightBtn" style="position: absolute; display: none; background: #22c55e; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 9999;">✍️ 하이라이트 추가</button>
 
   <script>
     const DEFAULT_PALETTE = ['#ffeb3b', '#00f2fe', '#ff758c', '#ff9f43', '#a8ff78', '#b45309'];
@@ -612,21 +748,29 @@
     function setTheme(theme) {
       const novelView = document.getElementById('novelView');
       novelView.setAttribute('data-theme', theme);
+
+      const darkBtn = document.getElementById('btnThemeDark');
+      const lightBtn = document.getElementById('btnThemeLight');
+
+      if (theme === 'dark') {
+        darkBtn.classList.add('active');
+        lightBtn.classList.remove('active');
+      } else {
+        lightBtn.classList.add('active');
+        darkBtn.classList.remove('active');
+      }
+
       selectPaletteColor(selectedChipIdx);
     }
 
     function setLineHeight(lh, selectedBtn) {
       document.getElementById('novelView').style.setProperty('--novel-line-height', lh);
       
-      const buttons = document.querySelectorAll('#lhGroup .btn-lh');
-      buttons.forEach(btn => {
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-secondary');
-      });
+      const buttons = document.querySelectorAll('#lhSegment .segmented-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
 
       if (selectedBtn) {
-        selectedBtn.classList.remove('btn-secondary');
-        selectedBtn.classList.add('btn-primary');
+        selectedBtn.classList.add('active');
       }
     }
 
@@ -674,7 +818,6 @@
       }).join('');
     }
 
-    // 렌더링 함수
     function renderNovel() {
       let rawText = document.getElementById('inputText').value;
       const replaceRules = document.getElementById('replaceRules').value;
@@ -685,7 +828,6 @@
         return;
       }
 
-      // 커스텀 코드블록 렌더러 정의
       const customRenderer = new marked.Renderer();
       customRenderer.code = function(code, infostring, isEscaped) {
         const title = (infostring || '').trim();
@@ -716,7 +858,6 @@
         marked.setOptions({ breaks: true, gfm: true, renderer: customRenderer });
       }
 
-      // 1. 단어 치환 규칙 적용
       const rules = replaceRules.split('\n');
       rules.forEach(rule => {
         if (rule.includes('->')) {
@@ -729,21 +870,12 @@
         }
       });
 
-      // 2. 3연속 이상 빈 줄 전처리
       rawText = preprocessBlankLines(rawText);
-
-      // 3. 리스트 문법 무력화 전처리
       rawText = disarmLists(rawText);
-
-      // 4. 간편 밑줄 문법 미리 변환 (++내용++ -> <u>내용</u>)
       rawText = rawText.replace(/\+\+(.*?)\+\+/g, '<u>$1</u>');
-
-      // 5. 커스텀 하이라이트 문법 미리 변환
       rawText = rawText.replace(/==(.*?)==/g, '<span class="highlight">$1</span>');
 
-      // 6. 마크다운 파싱 수행
       let parsedHtml = typeof marked.parse === 'function' ? marked.parse(rawText) : marked(rawText);
-
       novelView.innerHTML = parsedHtml;
     }
 
@@ -786,7 +918,6 @@
           });
         }
       }).then(canvas => {
-        // 날짜 및 시간 기반 저장 파일명 생성 (캡처_YYYYMMDD_HHMMSS)
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
