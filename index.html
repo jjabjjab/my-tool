@@ -420,7 +420,8 @@
       font-family: inherit !important;
     }
 
-    .novel-capture-area .highlight { 
+    .novel-capture-area .highlight,
+    .novel-capture-area .highlight * { 
       background-color: transparent !important;
       color: var(--novel-highlight-text) !important; 
       opacity: 1 !important; 
@@ -1014,8 +1015,40 @@
       const textarea = document.getElementById('inputText');
       let currentContent = textarea.value;
 
-      if (currentContent.includes(targetText)) {
-        textarea.value = currentContent.replace(targetText, `==${targetText}==`);
+      // 1. 단어 치환 규칙 파싱
+      const replaceRulesStr = document.getElementById('replaceRules').value;
+      const rules = [];
+      replaceRulesStr.split('\n').forEach(rule => {
+        if (rule.includes('->')) {
+          const [target, replacement] = rule.split('->');
+          if (target.trim()) {
+            rules.push({
+              target: target.trim(),
+              replacement: replacement.trim()
+            });
+          }
+        }
+      });
+
+      // 2. 선택한 텍스트(targetText)를 정규식 패턴으로 변환 (특수문자 이스케이프)
+      let patternStr = targetText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+      // 3. 치환된 단어가 선택 구역에 포함되어 있을 경우 원본 단어도 함께 매칭되도록 패턴 조합
+      rules.forEach(r => {
+        if (r.replacement) {
+          const safeReplacement = r.replacement.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const safeTarget = r.target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const repRegex = new RegExp(safeReplacement, 'g');
+          patternStr = patternStr.replace(repRegex, `(?:${safeTarget}|${safeReplacement})`);
+        }
+      });
+
+      // 4. 원본 텍스트(currentContent)에서 대응되는 실제 구간 탐색 후 하이라이트 감싸기
+      const matchRegex = new RegExp(patternStr);
+      const match = currentContent.match(matchRegex);
+
+      if (match) {
+        textarea.value = currentContent.replace(matchRegex, `==${match[0]}==`);
         renderNovel(); 
       } else {
         alert("텍스트 원본과 일치하는 구간을 찾지 못했습니다.\n줄바꿈(엔터)이 여러 개 포함되었는지 확인해 주세요.");
