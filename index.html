@@ -138,8 +138,6 @@
     .novel-capture-area h6 { font-size: 0.85em; }
 
     /* 블록 요소 상하 여백 */
-    .novel-capture-area ul,
-    .novel-capture-area ol,
     .novel-capture-area table,
     .novel-capture-area pre {
       margin-top: 0.6em;
@@ -193,40 +191,6 @@
     .novel-capture-area blockquote p:last-child {
       margin-bottom: 0;
     }
-    
-    /* 리스트 및 체크리스트 */
-    .novel-capture-area ul {
-      padding-left: 1.8em;
-      list-style-type: disc;
-      list-style-position: outside;
-    }
-    .novel-capture-area ol {
-      padding-left: 1.8em;
-      list-style-type: decimal;
-      list-style-position: outside;
-    }
-    .novel-capture-area li {
-      margin-bottom: 0.3em;
-      padding-left: 0.3em;
-      color: inherit;
-    }
-
-    /* 체크리스트 불렛 완전 제거 & 정렬 맞춤 */
-    .novel-capture-area li.task-item {
-      list-style: none !important;
-      list-style-type: none !important;
-      padding-left: 0 !important;
-      margin-left: -0.8em;
-    }
-    .novel-capture-area li.task-item input[type="checkbox"] {
-      appearance: auto;
-      -webkit-appearance: checkbox;
-      vertical-align: -0.12em;
-      margin-right: 6px;
-      width: 15px;
-      height: 15px;
-      cursor: pointer;
-    }
 
     /* 링크 및 이미지 */
     .novel-capture-area a {
@@ -240,7 +204,7 @@
       margin: 0.5em 0;
     }
 
-    /* 표(Table) 스타일 - 배경색 전면 제거 */
+    /* 표(Table) 스타일 - 배경색 제거 및 글자 굵기 일반 텍스트와 통일 */
     .novel-capture-area table {
       width: 100%;
       border-collapse: collapse;
@@ -253,9 +217,10 @@
       padding: 8px 12px;
       color: inherit;
       background-color: transparent;
+      font-weight: normal !important;
     }
     .novel-capture-area th {
-      font-weight: bold;
+      font-weight: normal !important;
     }
 
     /* 코드블록 서식 */
@@ -381,10 +346,9 @@
       </div>
       
       <div class="guide-box" style="margin-bottom: 8px;">
-        • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭(색상변경)*</b>, <b>~~취소선~~</b>, <b><u>밑줄</u></b><br>
+        • <b># 제목</b>, <b>**볼드**</b>, <b>*이탤릭(색상변경)*</b>, <b>~~취소선~~</b>, <b><u>&lt;u&gt;밑줄&lt;/u&gt;</u></b><br>
         • <b>==텍스트==</b> : 하이라이트 글자색 변경 (드래그 추가 / 클릭 삭제)<br>
-        • <b>&gt; 인용구</b>, <b>- 목록</b>, <b>1. 순서목록</b>, <b>- [x] 체크리스트</b><br>
-        • <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
+        • <b>&gt; 인용구</b>, <b>[링크](url)</b>, <b>![이미지](url)</b>, <b>| 표 | 작성 |</b><br>
         • <b>`인라인코드`</b> 및 <b>```코드블록```</b> 지원
       </div>
       
@@ -593,8 +557,17 @@
         return;
       }
 
+      // Marked.js 리스트(불렛, 숫자, 체크리스트) 파싱 비활성화 설정
       if (typeof marked.use === 'function') {
-        marked.use({ breaks: true, gfm: true });
+        marked.use({
+          breaks: true,
+          gfm: true,
+          tokenizer: {
+            list() {
+              return false; // 리스트 구문 자체를 파싱하지 않고 일반 문단으로 처리
+            }
+          }
+        });
       } else if (typeof marked.setOptions === 'function') {
         marked.setOptions({ breaks: true, gfm: true });
       }
@@ -622,15 +595,6 @@
       let parsedHtml = typeof marked.parse === 'function' ? marked.parse(rawText) : marked(rawText);
 
       novelView.innerHTML = parsedHtml;
-
-      // 5. 체크리스트 태그 정리 (불렛 기호 제거 전용 클래스 부여)
-      const checkboxes = novelView.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(cb => {
-        const li = cb.closest('li');
-        if (li) {
-          li.classList.add('task-item');
-        }
-      });
     }
 
     function convertColorSrgbToRgb(colorStr) {
