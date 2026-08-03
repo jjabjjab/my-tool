@@ -420,6 +420,7 @@
       font-family: inherit !important;
     }
 
+    /* 하이라이트 내 내부 요소를 포함한 색상 상속 스타일 (수정 적용) */
     .novel-capture-area .highlight,
     .novel-capture-area .highlight * { 
       background-color: transparent !important;
@@ -429,7 +430,8 @@
       cursor: pointer; 
       transition: opacity 0.15s;
     }
-    .novel-capture-area .highlight:hover { opacity: 0.7 !important; }
+    .novel-capture-area .highlight:hover,
+    .novel-capture-area .highlight *:hover { opacity: 0.7 !important; }
   </style>
 </head>
 <body>
@@ -1008,47 +1010,86 @@
       }
     });
 
+    /* 수정된 드래그 하이라이트 이벤트 리스너 */
     floatBtn.addEventListener('click', function() {
       const targetText = this.dataset.text;
       if (!targetText) return;
 
       const textarea = document.getElementById('inputText');
       let currentContent = textarea.value;
+      const replaceRulesStr = document.getElementById('replaceRules').value;
 
       // 1. 단어 치환 규칙 파싱
-      const replaceRulesStr = document.getElementById('replaceRules').value;
       const rules = [];
-      replaceRulesStr.split('\n').forEach(rule => {
-        if (rule.includes('->')) {
-          const [target, replacement] = rule.split('->');
-          if (target.trim()) {
-            rules.push({
-              target: target.trim(),
-              replacement: replacement.trim()
-            });
+      if (replaceRulesStr) {
+        replaceRulesStr.split('\n').forEach(rule => {
+          if (rule.includes('->')) {
+            const [target, replacement] = rule.split('->');
+            if (target.trim() && replacement.trim()) {
+              rules.push({
+                target: target.trim(),
+                replacement: replacement.trim()
+              });
+            }
+          }
+        });
+      }
+
+      // 2. 마크다운 기호(*, **, ~~ 등) 및 공백/치환 규칙을 유연하게 포용하는 정규식 패턴 생성
+      const MD_OPT = '(?:[\\*_~+=`\\\\])*';
+      const FLEX_SPACE = '(?:[\\*_~+=`\\\\]|\\s)+';
+      
+      let regexParts = [];
+      let i = 0;
+
+      while (i < targetText.length) {
+        let matchedRule = null;
+        for (const r of rules) {
+          if (targetText.startsWith(r.replacement, i)) {
+            matchedRule = r;
+            break;
           }
         }
-      });
 
-      // 2. 선택한 텍스트(targetText)를 정규식 패턴으로 변환 (특수문자 이스케이프)
-      let patternStr = targetText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-
-      // 3. 치환된 단어가 선택 구역에 포함되어 있을 경우 원본 단어도 함께 매칭되도록 패턴 조합
-      rules.forEach(r => {
-        if (r.replacement) {
-          const safeReplacement = r.replacement.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const safeTarget = r.target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const repRegex = new RegExp(safeReplacement, 'g');
-          patternStr = patternStr.replace(repRegex, `(?:${safeTarget}|${safeReplacement})`);
+        if (matchedRule) {
+          const safeTarget = matchedRule.target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const safeRep = matchedRule.replacement.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          regexParts.push(`(?:${safeTarget}|${safeRep})`);
+          i += matchedRule.replacement.length;
+        } else {
+          const char = targetText[i];
+          if (/\s/.test(char)) {
+            regexParts.push(FLEX_SPACE);
+            while (i + 1 < targetText.length && /\s/.test(targetText[i + 1])) {
+              i++;
+            }
+          } else {
+            const safeChar = char.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            regexParts.push(safeChar);
+          }
+          i++;
         }
-      });
+      }
 
-      // 4. 원본 텍스트(currentContent)에서 대응되는 실제 구간 탐색 후 하이라이트 감싸기
-      const matchRegex = new RegExp(patternStr);
+      let finalPattern = '';
+      for (let j = 0; j < regexParts.length; j++) {
+        finalPattern += regexParts[j];
+        if (j < regexParts.length - 1) {
+          const currIsSpace = regexParts[j] === FLEX_SPACE;
+          const nextIsSpace = regexParts[j + 1] === FLEX_SPACE;
+          if (!currIsSpace && !nextIsSpace) {
+            finalPattern += MD_OPT;
+          }
+        }
+      }
+
+      const matchRegex = new RegExp(finalPattern);
       const match = currentContent.match(matchRegex);
 
       if (match) {
-        textarea.value = currentContent.replace(matchRegex, `==${match[0]}==`);
+        // 중복 하이라이트(====) 방지를 위한 기존 기호 정리 후 적용
+        const cleanedMatch = match[0].replace(/==/g, '');
+        textarea.value = currentContent.replace(matchRegex, `==${cleanedMatch}==`);
         renderNovel(); 
       } else {
         alert("텍스트 원본과 일치하는 구간을 찾지 못했습니다.\n줄바꿈(엔터)이 여러 개 포함되었는지 확인해 주세요.");
@@ -1059,11 +1100,12 @@
     });
 
     novelView.addEventListener('click', function(e) {
-      if (e.target.classList.contains('highlight')) {
+      if (e.target.classList.contains('highlight') || e.target.closest('.highlight')) {
         if (window.getSelection().toString().trim().length > 0) return;
 
+        const targetHighlight = e.target.classList.contains('highlight') ? e.target : e.target.closest('.highlight');
         const highlights = Array.from(novelView.querySelectorAll('.highlight'));
-        const targetIndex = highlights.indexOf(e.target);
+        const targetIndex = highlights.indexOf(targetHighlight);
 
         const textarea = document.getElementById('inputText');
         let content = textarea.value;
