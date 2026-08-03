@@ -420,7 +420,7 @@
       font-family: inherit !important;
     }
 
-    /* 하이라이트 내 내부 요소를 포함한 색상 상속 스타일 (수정 적용) */
+    /* 하이라이트 색상 상속 스타일 */
     .novel-capture-area .highlight,
     .novel-capture-area .highlight * { 
       background-color: transparent !important;
@@ -557,6 +557,7 @@
     const DEFAULT_PALETTE = ['#ffeb3b', '#00f2fe', '#ff758c', '#ff9f43', '#a8ff78', '#b45309'];
     let currentPalette = [];
     let selectedChipIdx = 0;
+    let currentSelectionContext = null; // 맥락 정보 저장 변수
 
     window.onload = function() {
       document.getElementById('replaceRules').value = "";
@@ -987,19 +988,51 @@
     const floatBtn = document.getElementById('floatingHighlightBtn');
     const novelView = document.getElementById('novelView');
 
+    /* [맥락 추적 1단계] 프리뷰 드래그 시 선택 구역과 앞뒤 20자 Context 수집 */
     novelView.addEventListener('mouseup', function(e) {
       setTimeout(() => {
         const selection = window.getSelection();
-        const selectedText = selection.toString().trim();
+        const selectedText = selection.toString();
 
-        if (selectedText.length > 0) {
+        if (selectedText.trim().length > 0 && selection.rangeCount > 0) {
           const range = selection.getRangeAt(0);
           const rect = range.getBoundingClientRect();
+
+          let blockNode = range.commonAncestorContainer;
+          while (blockNode && blockNode !== novelView && blockNode.nodeType !== 1) {
+            blockNode = blockNode.parentNode;
+          }
+          if (!blockNode || blockNode === novelView) {
+            blockNode = range.commonAncestorContainer.parentElement || novelView;
+          }
+
+          const blockText = blockNode.textContent || '';
+          
+          let startOffset = 0;
+          try {
+            const preRange = document.createRange();
+            preRange.selectNodeContents(blockNode);
+            preRange.setEnd(range.startContainer, range.startOffset);
+            startOffset = preRange.toString().length;
+          } catch(err) {
+            startOffset = blockText.indexOf(selectedText);
+          }
+
+          const endOffset = startOffset + selectedText.length;
+
+          // 선택 텍스트 앞뒤 20글자 맥락 추출
+          const prefixText = blockText.substring(Math.max(0, startOffset - 20), startOffset);
+          const suffixText = blockText.substring(endOffset, Math.min(blockText.length, endOffset + 20));
+
+          currentSelectionContext = {
+            selectedText: selectedText,
+            prefix: prefixText,
+            suffix: suffixText
+          };
 
           floatBtn.style.left = `${rect.left + window.pageXOffset + (rect.width / 2) - 60}px`;
           floatBtn.style.top = `${rect.top + window.pageYOffset - 40}px`;
           floatBtn.style.display = 'block';
-          floatBtn.dataset.text = selectedText;
         }
       }, 10);
     });
@@ -1010,10 +1043,62 @@
       }
     });
 
-    /* 수정된 드래그 하이라이트 이벤트 리스너 */
+    /* 서식 기호 및 치환 규칙 허용 패턴 생성기 */
+    function buildFlexPattern(str, rules = []) {
+      if (!str) return '';
+
+      const MD_OPT = '(?:[\\*_~+=`\\\\()[\\]{}#>-])*';
+      const FLEX_SPACE = '(?:[\\*_~+=`\\\\()[\\]{}#>-]|\\s)+';
+
+      let regexParts = [];
+      let i = 0;
+
+      while (i < str.length) {
+        let matchedRule = null;
+        for (const r of rules) {
+          if (r.replacement && str.startsWith(r.replacement, i)) {
+            matchedRule = r;
+            break;
+          }
+        }
+
+        if (matchedRule) {
+          const safeTarget = matchedRule.target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const safeRep = matchedRule.replacement.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          regexParts.push(`(?:${safeTarget}|${safeRep})`);
+          i += matchedRule.replacement.length;
+        } else {
+          const char = str[i];
+          if (/\s/.test(char)) {
+            regexParts.push(FLEX_SPACE);
+            while (i + 1 < str.length && /\s/.test(str[i + 1])) {
+              i++;
+            }
+          } else {
+            const safeChar = char.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            regexParts.push(safeChar);
+          }
+          i++;
+        }
+      }
+
+      let pattern = '';
+      for (let j = 0; j < regexParts.length; j++) {
+        pattern += regexParts[j];
+        if (j < regexParts.length - 1) {
+          const currIsSpace = regexParts[j] === FLEX_SPACE;
+          const nextIsSpace = regexParts[j + 1] === FLEX_SPACE;
+          if (!currIsSpace && !nextIsSpace) {
+            pattern += MD_OPT;
+          }
+        }
+      }
+      return pattern;
+    }
+
+    /* [맥락 추적 2단계] 앞뒤 맥락으로 원본 인덱스를 정밀 추적하여 하이라이트 적용 */
     floatBtn.addEventListener('click', function() {
-      const targetText = this.dataset.text;
-      if (!targetText) return;
+      if (!currentSelectionContext || !currentSelectionContext.selectedText) return;
 
       const textarea = document.getElementById('inputText');
       let currentContent = textarea.value;
@@ -1035,68 +1120,48 @@
         });
       }
 
-      // 2. 마크다운 기호(*, **, ~~ 등) 및 공백/치환 규칙을 유연하게 포용하는 정규식 패턴 생성
-      const MD_OPT = '(?:[\\*_~+=`\\\\])*';
-      const FLEX_SPACE = '(?:[\\*_~+=`\\\\]|\\s)+';
-      
-      let regexParts = [];
-      let i = 0;
+      const { selectedText, prefix, suffix } = currentSelectionContext;
 
-      while (i < targetText.length) {
-        let matchedRule = null;
-        for (const r of rules) {
-          if (targetText.startsWith(r.replacement, i)) {
-            matchedRule = r;
-            break;
-          }
-        }
+      const prefixPat = buildFlexPattern(prefix, rules);
+      const targetPat = buildFlexPattern(selectedText, rules);
+      const suffixPat = buildFlexPattern(suffix, rules);
 
-        if (matchedRule) {
-          const safeTarget = matchedRule.target.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const safeRep = matchedRule.replacement.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          regexParts.push(`(?:${safeTarget}|${safeRep})`);
-          i += matchedRule.replacement.length;
-        } else {
-          const char = targetText[i];
-          if (/\s/.test(char)) {
-            regexParts.push(FLEX_SPACE);
-            while (i + 1 < targetText.length && /\s/.test(targetText[i + 1])) {
-              i++;
-            }
-          } else {
-            const safeChar = char.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            regexParts.push(safeChar);
-          }
-          i++;
+      // 탐색 레이어 (전체 맥락 매칭 -> 부분 맥락 -> 단독 타겟)
+      const attempts = [
+        new RegExp(`(${prefixPat})(${targetPat})(${suffixPat})`),
+        new RegExp(`()(${targetPat})(${suffixPat})`),
+        new RegExp(`(${prefixPat})(${targetPat})()`),
+        new RegExp(`()(${targetPat})()`)
+      ];
+
+      let match = null;
+      for (const regex of attempts) {
+        if (!targetPat) break;
+        const res = currentContent.match(regex);
+        if (res) {
+          match = res;
+          break;
         }
       }
-
-      let finalPattern = '';
-      for (let j = 0; j < regexParts.length; j++) {
-        finalPattern += regexParts[j];
-        if (j < regexParts.length - 1) {
-          const currIsSpace = regexParts[j] === FLEX_SPACE;
-          const nextIsSpace = regexParts[j + 1] === FLEX_SPACE;
-          if (!currIsSpace && !nextIsSpace) {
-            finalPattern += MD_OPT;
-          }
-        }
-      }
-
-      const matchRegex = new RegExp(finalPattern);
-      const match = currentContent.match(matchRegex);
 
       if (match) {
-        // 중복 하이라이트(====) 방지를 위한 기존 기호 정리 후 적용
-        const cleanedMatch = match[0].replace(/==/g, '');
-        textarea.value = currentContent.replace(matchRegex, `==${cleanedMatch}==`);
-        renderNovel(); 
+        const prefixMatchLen = match[1] ? match[1].length : 0;
+        const targetMatch = match[2];
+        const matchIndex = match.index + prefixMatchLen;
+
+        const before = currentContent.slice(0, matchIndex);
+        const cleanedTarget = targetMatch.replace(/==/g, '');
+        const after = currentContent.slice(matchIndex + targetMatch.length);
+
+        textarea.value = before + '==' + cleanedTarget + '==' + after;
+        renderNovel();
       } else {
         alert("텍스트 원본과 일치하는 구간을 찾지 못했습니다.\n줄바꿈(엔터)이 여러 개 포함되었는지 확인해 주세요.");
       }
 
       floatBtn.style.display = 'none';
       window.getSelection().removeAllRanges();
+      currentSelectionContext = null;
     });
 
     novelView.addEventListener('click', function(e) {
