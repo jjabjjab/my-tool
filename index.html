@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>웹소설 스타일 캡처 생성기</title>
   <!-- 고화질 이미지 저장을 위한 라이브러리 -->
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js)"></script>
-  <!-- Marked.js (주 CDN 실패 시 예비 CDN 자동 로드) -->
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js](https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js)" 
-          onerror="this.onerror=null; this.src='[https://unpkg.com/marked@4.3.0/marked.min.js](https://unpkg.com/marked@4.3.0/marked.min.js)';"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <!-- Marked.js (더 빠른 jsDelivr CDN 및 다중 예비 CDN 적용) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js" 
+          onerror="this.onerror=null; this.src='https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js';"></script>
   <style>
     /* 기본 레이아웃 변수 설정 (라이트/다크 모드 대응) */
     :root {
@@ -428,11 +428,35 @@
       document.getElementById('replaceRules').value = "";
       document.getElementById('inputText').value = "";
       initPalette();
-      initFont(); // 저장된 폰트 복원
-      renderNovel();
+      initFont();
+      
+      // 라이브러리가 완전히 준비될 때까지 안전 대기
+      ensureMarkedLoaded().then(() => {
+        renderNovel();
+      });
     };
 
-    // 1. 폰트 초기화 및 저장된 값 로드
+    // 라이브러리 비동기 로딩 보장 함수
+    function ensureMarkedLoaded() {
+      return new Promise((resolve) => {
+        if (typeof marked !== 'undefined') {
+          resolve();
+          return;
+        }
+        let attempts = 0;
+        const interval = setInterval(() => {
+          attempts++;
+          if (typeof marked !== 'undefined') {
+            clearInterval(interval);
+            resolve();
+          } else if (attempts > 30) { // 3초 초과 시 해제
+            clearInterval(interval);
+            resolve();
+          }
+        }, 100);
+      });
+    }
+
     function initFont() {
       const savedType = localStorage.getItem('webnovel_font_type');
       const savedVal = localStorage.getItem('webnovel_font_val');
@@ -449,7 +473,6 @@
       }
     }
 
-    // 2. PC 설치 로컬 폰트명 적용 및 저장
     function applyLocalFontName(fontName, updateStorage = true) {
       const name = fontName.trim();
       const novelView = document.getElementById('novelView');
@@ -475,7 +498,6 @@
       }
     }
 
-    // 3. 폰트 파일 업로드 핸들러
     function handleFontFileUpload() {
       const fileInput = document.getElementById('fontFileInput');
       const file = fileInput.files[0];
@@ -704,7 +726,7 @@
         return;
       }
 
-      // 커스텀 코드블록 렌더러 정의 (제목바 + 복사 아이콘 추가)
+      // 커스텀 코드블록 렌더러 정의
       const customRenderer = new marked.Renderer();
       customRenderer.code = function(code, infostring, isEscaped) {
         const title = (infostring || '').trim();
